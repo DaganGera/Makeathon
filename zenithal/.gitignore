@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+
+# Models & data (regenerate via training scripts)
+backend/app/ml/models/*.pkl
+backend/app/ml/models/*.json
+backend/zenithal.db
+backend/data/GeoLite2-*.mmdb
+backend/data/allowlist_domains.txt
+backend/data/blocklist_hosts.txt
+backend/training/data/*.csv
+backend/training/data/openphish.txt
+backend/feed_update.log
+
+# Node
+node_modules/
+dashboard/dist/
+
+# Screenshots / scratch
+demo/shot_*.png
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
