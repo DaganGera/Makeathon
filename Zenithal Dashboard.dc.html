@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#09090F;color:#EDEBFF;font-family:'Sora',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#B9AFFF;text-decoration:none}a:hover{color:#F056C7}
+input,textarea,button{font-family:'Sora',sans-serif}
+input::placeholder,textarea::placeholder{color:rgba(237,235,255,.3)}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:rgba(138,124,255,.25);border-radius:99px}::-webkit-scrollbar-track{background:transparent}
+@keyframes zIn{from{opacity:0;transform:translateY(18px);filter:blur(6px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
+@keyframes zRow{from{opacity:0;transform:translateY(-14px);filter:blur(4px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
+@keyframes zPulse{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes zPing{0%{transform:scale(.6);opacity:.9}100%{transform:scale(2.6);opacity:0}}
+@keyframes zSpin{to{transform:rotate(360deg)}}
+@keyframes zDrift1{0%{transform:translate(0,0) scale(1)}50%{transform:translate(70px,50px) scale(1.12)}100%{transform:translate(0,0) scale(1)}}
+@keyframes zRing{from{background:conic-gradient(#5EEAD4 0deg,rgba(255,255,255,.06) 0deg)}}
+</style>
+</helmet>
+<div data-screen-label="Dashboard" style="height:100vh;display:grid;grid-template-columns:232px 1fr;background:#09090F;overflow:hidden;position:relative">
+  <div style="position:absolute;top:-260px;right:-200px;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(138,124,255,.14),transparent 65%);filter:blur(70px);animation:zDrift1 34s ease-in-out infinite;pointer-events:none"></div>
+  <div style="position:absolute;bottom:-300px;left:200px;width:800px;height:800px;border-radius:50%;background:radial-gradient(circle,rgba(240,86,199,.09),transparent 65%);filter:blur(80px);animation:zDrift1 42s ease-in-out infinite reverse;pointer-events:none"></div>
+
+  <!-- Sidebar -->
+  <aside style="display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.07);background:rgba(13,12,22,.7);backdrop-filter:blur(20px);position:relative;z-index:5">
+    <a href="Zenithal Landing.dc.html" style="display:flex;align-items:center;gap:11px;color:#EDEBFF;padding:22px 20px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#8A7CFF,#F056C7);display:grid;place-items:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:#09090F;box-shadow:0 0 18px rgba(240,86,199,.4)">Z</span>
+      <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:16.5px">zenithal</span>
+    </a>
+    <div style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:{{ connColor }}">
+        <span style="width:6px;height:6px;border-radius:50%;background:{{ connColor }};box-shadow:0 0 8px {{ connColor }};animation:zPulse 2s infinite"></span>{{ connLabel }}
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:rgba(237,235,255,.35);margin-top:8px;line-height:1.8">url model · {{ hUrl }}<br>payload · {{ hPayload }}<br>geo · {{ hGeo }}</div>
+    </div>
+    <nav style="flex:1;padding:12px 12px;display:flex;flex-direction:column;gap:3px;overflow-y:auto">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+        <button onClick="{{ n.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid {{ n.bd }};border-radius:11px;background:{{ n.bg }};color:{{ n.fg }};font-size:13px;font-weight:{{ n.w }};cursor:pointer;text-align:left;transition:background .35s,color .35s,border-color .35s" style-hover="background:rgba(255,255,255,.05);color:#fff">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:rgba(255,255,255,.06);color:{{ n.ic }}">{{ n.glyph }}</span>
+          {{ n.label }}
+        </button>
+      </sc-for>
+    </nav>
+    <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;color:rgba(237,235,255,.35)">SIH25229</span>
+      <a href="Zenithal Login.dc.html" style="font-size:11.5px;color:rgba(237,235,255,.5)" style-hover="color:#F056C7">Sign out</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main style="display:flex;flex-direction:column;overflow:hidden;position:relative;z-index:2">
+    <!-- Stats bar -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.07)">
+      <sc-for list="{{ statCards }}" as="s" hint-placeholder-count="5">
+        <div style="background:rgba(9,9,15,.92);padding:14px 20px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:rgba(237,235,255,.4)">{{ s.label }}</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;margin-top:3px;color:{{ s.c }};transition:color .4s">{{ s.value }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding:26px 30px">
+
+      <!-- ============ THREAT FEED ============ -->
+      <sc-if value="{{ isFeed }}" hint-placeholder-val="{{ true }}">
+        <div style="animation:zIn .6s cubic-bezier(.22,1,.36,1) both">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px">
+            <h2 style="margin:0;font-family:'Syne',sans-serif;font-weight:700;font-size:21px">Threat Feed</h2>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:rgba(237,235,255,.4)">{{ feedCount }} events · streaming {{ connWord }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start">
+            <div style="border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(16,15,28,.55);backdrop-filter:blur(16px);overflow:hidden">
+              <div style="display:grid;grid-template-columns:2fr .9fr .9fr .5fr;padding:12px 18px;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;color:rgba(237,235,255,.4);border-bottom:1px solid rgba(255,255,255,.06)"><span>INPUT</span><span>THREAT</span><span>SOURCE</span><span style="text-align:right">SCORE</span></div>
+              <sc-for list="{{ feed }}" as="d" hint-placeholder-count="10">
+                <div onClick="{{ d.select }}" style="display:grid;grid-template-columns:2fr .9fr .9fr .5fr;align-items:center;padding:13px 18px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;background:{{ d.rowBg }};animation:zRow .5s cubic-bezier(.22,1,.36,1) both;transition:background .3s" style-hover="background:rgba(138,124,255,.07)">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:rgba(237,235,255,.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:14px">{{ d.input }}</span>
+                  <span><span style="padding:3px 10px;border-radius:99px;font-family:'JetBrains Mono',monospace;font-size:9.5px;background:{{ d.chipBg }};color:{{ d.chipFg }};border:1px solid {{ d.chipBd }}">{{ d.threat_type }}</span></span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:rgba(237,235,255,.5)">{{ d.cc }} · {{ d.src_ip }}</span>
+                  <span style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:12px;color:{{ d.chipFg }}">{{ d.score }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(16,15,28,.55);backdrop-filter:blur(16px);padding:22px;position:sticky;top:0">
+              <sc-if value="{{ sel }}" hint-placeholder-val="{{ true }}">
+                <div style="animation:zIn .45s cubic-bezier(.22,1,.36,1) both">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                    <span style="padding:4px 12px;border-radius:99px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;background:{{ selChipBg }};color:{{ selChipFg }};border:1px solid {{ selChipBd }}">{{ selVerdict }}</span>
+                    <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:{{ selChipFg }}">{{ selScore }}</span>
+                  </div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:rgba(237,235,255,.85);word-break:break-all;padding:12px 14px;border-radius:11px;background:rgba(9,9,15,.7);border:1px solid rgba(255,255,255,.07);margin-bottom:16px">{{ selInput }}</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;font-size:10.5px">
+                    <div style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)"><div style="font-size:8.5px;letter-spacing:.1em;color:rgba(237,235,255,.38)">SOURCE IP</div><div style="margin-top:4px;color:#B9AFFF">{{ selIp }}</div></div>
+                    <div style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)"><div style="font-size:8.5px;letter-spacing:.1em;color:rgba(237,235,255,.38)">GEO</div><div style="margin-top:4px;color:rgba(237,235,255,.8)">{{ selCountry }}</div></div>
+                    <div style="grid-column:1/-1;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)"><div style="font-size:8.5px;letter-spacing:.1em;color:rgba(237,235,255,.38)">ASN / ORG</div><div style="margin-top:4px;color:rgba(237,235,255,.8)">{{ selAsn }}</div></div>
+                  </div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.12em;color:rgba(237,235,255,.4);margin-bottom:10px">WHY THIS VERDICT</div>
+                  <div style="display:flex;flex-direction:column;gap:7px">
+                    <sc-for list="{{ selReasons }}" as="r" hint-placeholder-count="3">
+                      <div style="display:flex;gap:9px;font-size:11.5px;line-height:1.5;color:rgba(237,235,255,.7)"><span style="color:{{ selChipFg }}">▸</span>{{ r }}</div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ noSel }}" hint-placeholder-val="{{ false }}">
+                <div style="text-align:center;padding:40px 10px;color:rgba(237,235,255,.35);font-size:12.5px">Select an event to see its<br>explanation and IP intel.</div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ URL SCANNER ============ -->
+      <sc-if value="{{ isUrl }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:zIn .6s cubic-bezier(.22,1,.36,1) both;max-width:820px;margin:0 auto">
+          <h2 style="margin:0 0 6px;font-family:'Syne',sans-serif;font-weight:700;font-size:21px">URL Scanner</h2>
+          <p style="margin:0 0 22px;font-size:13px;color:rgba(237,235,255,.5)">Engine 1 — 38 features → XGBoost, fused with IP↔domain correlation.</p>
+          <div style="display:flex;gap:12px">
+            <input value="{{ urlInput }}" onChange="{{ onUrlInput }}" onKeyDown="{{ onUrlKey }}" placeholder="https://suspicious-link.top/verify" style="flex:1;padding:15px 20px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(16,15,28,.7);color:#EDEBFF;font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;transition:border-color .4s,box-shadow .4s" style-focus="border-color:rgba(138,124,255,.6);box-shadow:0 0 0 3px rgba(138,124,255,.13)">
+            <button onClick="{{ doScan }}" style="padding:15px 30px;border:none;border-radius:14px;background:linear-gradient(135deg,#B23BD6,#F056C7);color:#fff;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:9px;box-shadow:0 0 26px rgba(240,86,199,.3);transition:box-shadow .4s,transform .4s" style-hover="box-shadow:0 0 46px rgba(240,86,199,.55);transform:translateY(-1px)" style-active="transform:scale(.98)">
+              <sc-if value="{{ scanBusy }}" hint-placeholder-val="{{ false }}"><span style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:zSpin .7s linear infinite"></span></sc-if>
+              Scan
+            </button>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <sc-for list="{{ presets }}" as="p" hint-placeholder-count="3">
+              <button onClick="{{ p.use }}" style="padding:7px 14px;border-radius:99px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:rgba(237,235,255,.6);font-family:'JetBrains Mono',monospace;font-size:10.5px;cursor:pointer;transition:border-color .35s,color .35s" style-hover="border-color:rgba(240,86,199,.5);color:#F79BDC">{{ p.label }}</button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ scanResult }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:26px;border-radius:18px;border:1px solid {{ scanBd }};background:rgba(16,15,28,.6);backdrop-filter:blur(18px);padding:28px;animation:zIn .7s cubic-bezier(.22,1,.36,1) both;box-shadow:0 0 60px {{ scanGlow }}">
+              <div style="display:grid;grid-template-columns:130px 1fr;gap:28px;align-items:center">
+                <div style="position:relative;width:130px;height:130px;border-radius:50%;background:conic-gradient({{ scanFg }} {{ scanDeg }}, rgba(255,255,255,.06) 0deg);display:grid;place-items:center;transition:background 1s cubic-bezier(.22,1,.36,1)">
+                  <div style="width:104px;height:104px;border-radius:50%;background:#100F1C;display:grid;place-items:center;flex-direction:column">
+                    <div style="text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:30px;color:{{ scanFg }}">{{ scanScore }}</div><div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.1em;color:rgba(237,235,255,.4)">/100 RISK</div></div>
+                  </div>
+                </div>
+                <div>
+                  <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+                    <span style="padding:5px 14px;border-radius:99px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:{{ scanBg2 }};color:{{ scanFg }};border:1px solid {{ scanBd }}">{{ scanVerdict }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:rgba(237,235,255,.45)">{{ scanEngine }}</span>
+                  </div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:rgba(237,235,255,.85);word-break:break-all;margin-bottom:14px">{{ scanUrl }}</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:10px">
+                    <span style="padding:5px 11px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:rgba(237,235,255,.65)">IP {{ scanIp }}</span>
+                    <span style="padding:5px 11px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:rgba(237,235,255,.65)">{{ scanCountry }}</span>
+                    <span style="padding:5px 11px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:rgba(237,235,255,.65)">{{ scanAsn }}</span>
+                    <span style="padding:5px 11px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:{{ scanRepC }}">rep · {{ scanRep }}</span>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:22px;padding-top:20px;border-top:1px solid rgba(255,255,255,.07)">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.12em;color:rgba(237,235,255,.4);margin-bottom:12px">EXPLAINABILITY — RANKED REASONS</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <sc-for list="{{ scanReasons }}" as="r" hint-placeholder-count="4">
+                    <div style="display:flex;gap:10px;padding:11px 14px;border-radius:11px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);font-size:12px;line-height:1.5;color:rgba(237,235,255,.72);animation:zIn .5s cubic-bezier(.22,1,.36,1) both"><span style="color:{{ scanFg }}">▸</span>{{ r }}</div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ============ LOG ANALYZER ============ -->
+      <sc-if value="{{ isLogs }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:zIn .6s cubic-bezier(.22,1,.36,1) both;max-width:900px;margin:0 auto">
+          <h2 style="margin:0 0 6px;font-family:'Syne',sans-serif;font-weight:700;font-size:21px">Log Analyzer</h2>
+          <p style="margin:0 0 20px;font-size:13px;color:rgba(237,235,255,.5)">Engine 2 — paste Apache/Nginx access-log lines; attacks are aggregated into ranked attacker-IP profiles.</p>
+          <textarea value="{{ logText }}" onChange="{{ onLogText }}" rows="7" spellcheck="false" style="width:100%;box-sizing:border-box;padding:16px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(16,15,28,.7);color:rgba(237,235,255,.8);font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.7;outline:none;resize:vertical;transition:border-color .4s" style-focus="border-color:rgba(138,124,255,.6)"></textarea>
+          <div style="display:flex;gap:12px;margin-top:14px;align-items:center">
+            <button onClick="{{ doLog }}" style="padding:13px 28px;border:none;border-radius:99px;background:linear-gradient(135deg,#B23BD6,#F056C7);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:9px;box-shadow:0 0 26px rgba(240,86,199,.3);transition:box-shadow .4s,transform .4s" style-hover="box-shadow:0 0 46px rgba(240,86,199,.55);transform:translateY(-1px)">
+              <sc-if value="{{ logBusy }}" hint-placeholder-val="{{ false }}"><span style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:zSpin .7s linear infinite"></span></sc-if>
+              Analyze log
+            </button>
+            <button onClick="{{ loadSample }}" style="padding:13px 22px;border-radius:99px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:rgba(237,235,255,.7);font-size:13px;cursor:pointer;transition:border-color .35s,color .35s" style-hover="border-color:rgba(138,124,255,.5);color:#fff">Load sample_access.log</button>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:rgba(237,235,255,.35)">POST /api/v1/analyze/logtext</span>
+          </div>
+          <sc-if value="{{ logReport }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:26px;animation:zIn .7s cubic-bezier(.22,1,.36,1) both">
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
+                <div style="padding:14px 20px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:rgba(237,235,255,.4)">LINES PARSED</div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;margin-top:2px">{{ logLines }}</div></div>
+                <div style="padding:14px 20px;border-radius:14px;background:rgba(255,92,122,.06);border:1px solid rgba(255,92,122,.25)"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:rgba(255,92,122,.7)">ATTACKS FOUND</div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;margin-top:2px;color:#FF5C7A">{{ logAttacks }}</div></div>
+                <sc-for list="{{ logTypes }}" as="t" hint-placeholder-count="5">
+                  <div style="padding:14px 20px;border-radius:14px;background:rgba(138,124,255,.05);border:1px solid rgba(138,124,255,.2)"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:#B9AFFF">{{ t.name }}</div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:22px;margin-top:2px;color:#C9C2FF">{{ t.count }}</div></div>
+                </sc-for>
+              </div>
+              <div style="border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(16,15,28,.55);overflow:hidden">
+                <div style="padding:14px 20px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:rgba(237,235,255,.45);border-bottom:1px solid rgba(255,255,255,.06)">TOP ATTACKER IPS — RANKED PROFILES</div>
+                <sc-for list="{{ logAttackers }}" as="a" hint-placeholder-count="5">
+                  <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr .8fr .5fr;align-items:center;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.04);animation:zRow .5s cubic-bezier(.22,1,.36,1) both">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#FF8CA3">{{ a.ip }}</span>
+                    <span style="font-size:11.5px;color:rgba(237,235,255,.65)">{{ a.country }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(237,235,255,.45)">{{ a.asn }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:rgba(237,235,255,.55)">{{ a.total_hits }} hits</span>
+                    <span style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600;color:{{ a.riskC }}">{{ a.risk_score }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ============ ATTACKER MAP ============ -->
+      <sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:zIn .6s cubic-bezier(.22,1,.36,1) both">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px">
+            <h2 style="margin:0;font-family:'Syne',sans-serif;font-weight:700;font-size:21px">Attacker Map</h2>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:rgba(237,235,255,.4)">geolocated from real IP data · GET /dashboard/attackers</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:start">
+            <div style="position:relative;height:440px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background-color:rgba(16,15,28,.55);background-image:radial-gradient(rgba(185,175,255,.14) 1px,transparent 1.4px);background-size:18px 18px;overflow:hidden">
+              <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,transparent 40%,#0C0B16 100%)"></div>
+              <sc-for list="{{ mapPins }}" as="p" hint-placeholder-count="8">
+                <div style="position:absolute;left:{{ p.x }};top:{{ p.y }}">
+                  <span style="position:absolute;width:14px;height:14px;border-radius:50%;background:{{ p.c }};left:-7px;top:-7px;animation:zPing 2.6s cubic-bezier(.22,1,.36,1) {{ p.d }} infinite"></span>
+                  <span style="position:absolute;width:9px;height:9px;border-radius:50%;background:{{ p.c }};box-shadow:0 0 14px {{ p.c }};left:-4.5px;top:-4.5px"></span>
+                  <span style="position:absolute;left:12px;top:-8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(237,235,255,.7);white-space:nowrap;background:rgba(9,9,15,.7);padding:2px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.07)">{{ p.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(16,15,28,.55);overflow:hidden">
+              <div style="padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:rgba(237,235,255,.45);border-bottom:1px solid rgba(255,255,255,.06)">RANKED ATTACKERS</div>
+              <sc-for list="{{ attackers }}" as="a" hint-placeholder-count="7">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:13px 18px;border-bottom:1px solid rgba(255,255,255,.04);animation:zRow .5s cubic-bezier(.22,1,.36,1) both">
+                  <div><div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:rgba(237,235,255,.85)">{{ a.ip }}</div><div style="font-size:10.5px;color:rgba(237,235,255,.45);margin-top:3px">{{ a.country }} · {{ a.asn }}</div></div>
+                  <div style="text-align:right"><div style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px;color:{{ a.riskC }}">{{ a.risk_score }}</div><div style="font-size:9.5px;color:rgba(237,235,255,.4);margin-top:2px">{{ a.total_hits }} hits</div></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ MESSAGE GUARD ============ -->
+      <sc-if value="{{ isChat }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:zIn .6s cubic-bezier(.22,1,.36,1) both;max-width:640px;margin:0 auto">
+          <h2 style="margin:0 0 6px;font-family:'Syne',sans-serif;font-weight:700;font-size:21px">Message Guard</h2>
+          <p style="margin:0 0 20px;font-size:13px;color:rgba(237,235,255,.5)">Paste a WhatsApp/SMS message — links are extracted and scanned before you ever open them.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+            <sc-for list="{{ msgPresets }}" as="m" hint-placeholder-count="2">
+              <button onClick="{{ m.use }}" style="padding:8px 15px;border-radius:99px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:rgba(237,235,255,.6);font-size:11px;cursor:pointer;transition:border-color .35s,color .35s" style-hover="border-color:rgba(240,86,199,.5);color:#F79BDC">{{ m.label }}</button>
+            </sc-for>
+          </div>
+          <textarea value="{{ msgText }}" onChange="{{ onMsgText }}" rows="4" placeholder="URGENT: Your account will be blocked… http://…" style="width:100%;box-sizing:border-box;padding:16px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(16,15,28,.7);color:rgba(237,235,255,.85);font-size:13px;line-height:1.65;outline:none;resize:vertical;transition:border-color .4s" style-focus="border-color:rgba(138,124,255,.6)"></textarea>
+          <button onClick="{{ doMsg }}" style="margin-top:14px;padding:13px 28px;border:none;border-radius:99px;background:linear-gradient(135deg,#B23BD6,#F056C7);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:9px;box-shadow:0 0 26px rgba(240,86,199,.3);transition:box-shadow .4s,transform .4s" style-hover="box-shadow:0 0 46px rgba(240,86,199,.55);transform:translateY(-1px)">
+            <sc-if value="{{ msgBusy }}" hint-placeholder-val="{{ false }}"><span style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:zSpin .7s linear infinite"></span></sc-if>
+            Guard this message
+          </button>
+          <sc-if value="{{ msgResult }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:24px;border-radius:16px;border:1px solid {{ msgBd }};background:rgba(16,15,28,.6);padding:24px;animation:zIn .6s cubic-bezier(.22,1,.36,1) both;box-shadow:0 0 50px {{ msgGlow }}">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                <span style="padding:5px 14px;border-radius:99px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:{{ msgBg2 }};color:{{ msgFg }};border:1px solid {{ msgBd }}">{{ msgVerdict }}</span>
+                <span style="font-size:12.5px;color:rgba(237,235,255,.6)">{{ msgSummary }}</span>
+              </div>
+              <sc-for list="{{ msgUrls }}" as="u" hint-placeholder-count="1">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 15px;border-radius:11px;background:rgba(9,9,15,.7);border:1px solid rgba(255,255,255,.07);margin-bottom:8px">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:rgba(237,235,255,.8);word-break:break-all;padding-right:14px">{{ u.url }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:{{ u.c }};white-space:nowrap">{{ u.verdict }} · {{ u.score }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    panel: "feed", mode: "connecting", health: null,
+    stats: null, feed: [], attackers: [], selId: null,
+    urlInput: "", scanBusy: false, scanResult: null,
+    logText: "", logBusy: false, logReport: null,
+    msgText: "", msgBusy: false, msgResult: null,
+  };
+  async componentDidMount() {
+    this.api = await import("./zenithal-api.js");
+    const health = await this.api.getHealth();
+    if (health) {
+      const [stats, det, atk] = await Promise.all([this.api.getStats(), this.api.getDetections(40), this.api.getAttackers(12)]);
+      this.setState({ mode: "live", health, stats: stats || this.api.simStats(0), feed: (det && det.detections) || [], attackers: (atk && atk.attackers) || this.api.simAttackers() });
+      try {
+        this._ws = new WebSocket("ws://127.0.0.1:8000/api/v1/ws/feed");
+        this._ws.onmessage = (ev) => { try { const m = JSON.parse(ev.data); if (m.type === "detection") this.pushDetection(m.data); } catch (e) {} };
+      } catch (e) {}
+      this._poll = setInterval(async () => { const s = await this.api.getStats(); if (s) this.setState({ stats: s }); }, 5000);
+    } else {
+      // Simulator fallback
+      let n = 0;
+      const seed = Array.from({ length: 14 }, () => this.api.simDetection());
+      this.setState({ mode: "sim", feed: seed, stats: this.api.simStats(0), attackers: this.api.simAttackers() });
+      this._sim = setInterval(() => { n++; this.pushDetection(this.api.simDetection()); this.setState({ stats: this.api.simStats(n) }); }, 3600);
+    }
+  }
+  componentWillUnmount() { clearInterval(this._sim); clearInterval(this._poll); if (this._ws) try { this._ws.close(); } catch (e) {} }
+  pushDetection(d) { this.setState((s) => ({ feed: [d, ...s.feed].slice(0, 60) })); }
+
+  chip(v) {
+    return v === "MALICIOUS" ? { chipBg: "rgba(255,92,122,.1)", chipFg: "#FF8CA3", chipBd: "rgba(255,92,122,.3)" }
+      : v === "SUSPICIOUS" ? { chipBg: "rgba(255,180,84,.08)", chipFg: "#FFC985", chipBd: "rgba(255,180,84,.28)" }
+      : { chipBg: "rgba(94,234,212,.07)", chipFg: "#5EEAD4", chipBd: "rgba(94,234,212,.22)" };
+  }
+  project(lat, lon) { return { x: ((lon + 180) / 360 * 100).toFixed(1) + "%", y: ((90 - lat) / 180 * 88 + 4).toFixed(1) + "%" }; }
+
+  doScan = async () => {
+    const url = this.state.urlInput.trim();
+    if (!url) return;
+    this.setState({ scanBusy: true, scanResult: null });
+    let r = this.state.mode === "live" ? await this.api.postUrl(url) : null;
+    if (!r) { await new Promise((res) => setTimeout(res, 900)); r = this.api.simUrlScan(url); this.pushDetection({ ...this.api.simDetection(), input: url, verdict: r.verdict, score: r.score, threat_type: r.threat_type }); }
+    this.setState({ scanBusy: false, scanResult: r });
+  };
+  doLog = async () => {
+    if (!this.state.logText.trim()) return;
+    this.setState({ logBusy: true, logReport: null });
+    let r = this.state.mode === "live" ? await this.api.postLogText(this.state.logText) : null;
+    if (!r) { await new Promise((res) => setTimeout(res, 1200)); r = this.api.simLogReport(); }
+    this.setState({ logBusy: false, logReport: r });
+  };
+  doMsg = async () => {
+    const text = this.state.msgText.trim();
+    if (!text) return;
+    this.setState({ msgBusy: true, msgResult: null });
+    let r = this.state.mode === "live" ? await this.api.postMessage(text, "unknown") : null;
+    if (!r) {
+      await new Promise((res) => setTimeout(res, 900));
+      const urls = (text.match(/https?:\/\/[^\s]+|(?:www\.|bit\.ly\/)[^\s]+/gi) || []).map((u) => u.includes("://") ? u : "http://" + u);
+      const results = urls.map((u) => { const s = this.api.simUrlScan(u); return { input: u, verdict: s.verdict, score: s.score }; });
+      const order = { SAFE: 0, SUSPICIOUS: 1, MALICIOUS: 2 };
+      const worst = results.reduce((w, x) => order[x.verdict] > order[w] ? x.verdict : w, "SAFE");
+      r = { urls_found: urls.length, overall_verdict: worst, results };
+    }
+    this.setState({ msgBusy: false, msgResult: r });
+  };
+
+  renderVals() {
+    const s = this.state;
+    const NAVDEF = [
+      ["feed", "Threat Feed", "◉"], ["url", "URL Scanner", "⌕"], ["logs", "Log Analyzer", "≣"], ["map", "Attacker Map", "◈"], ["chat", "Message Guard", "◧"],
+    ];
+    const nav = NAVDEF.map(([id, label, glyph]) => ({
+      label, glyph, go: () => this.setState({ panel: id }),
+      bg: s.panel === id ? "rgba(138,124,255,.13)" : "transparent",
+      bd: s.panel === id ? "rgba(138,124,255,.35)" : "transparent",
+      fg: s.panel === id ? "#C9C2FF" : "rgba(237,235,255,.55)",
+      ic: s.panel === id ? "#B9AFFF" : "rgba(237,235,255,.4)",
+      w: s.panel === id ? "600" : "400",
+    }));
+    const st = s.stats || {};
+    const statCards = [
+      { label: "TOTAL DETECTIONS", value: (st.total_detections ?? 0).toLocaleString(), c: "#EDEBFF" },
+      { label: "MALICIOUS", value: (st.malicious ?? 0).toLocaleString(), c: "#FF5C7A" },
+      { label: "SUSPICIOUS", value: (st.suspicious ?? 0).toLocaleString(), c: "#FFB454" },
+      { label: "ATTACKER IPS", value: st.unique_attackers ?? 0, c: "#B9AFFF" },
+      { label: "COUNTRIES", value: st.countries ?? 0, c: "#F79BDC" },
+    ];
+    const feed = s.feed.map((d) => ({
+      ...d, ...this.chip(d.verdict), cc: d.cc || (d.ip_intel && d.ip_intel.country) || "—",
+      src_ip: d.src_ip || d.resolved_ip || "—",
+      rowBg: s.selId === d.id ? "rgba(138,124,255,.09)" : "transparent",
+      select: () => this.setState({ selId: d.id }),
+    }));
+    const sel = feed.find((d) => d.id === s.selId) || feed[0] || null;
+    const selChip = sel ? this.chip(sel.verdict) : this.chip("SAFE");
+    const attackers = s.attackers.map((a) => ({ ...a, riskC: a.risk_score >= 80 ? "#FF8CA3" : a.risk_score >= 55 ? "#FFC985" : "#5EEAD4" }));
+    const mapPins = attackers.filter((a) => a.lat != null).map((a, i) => ({
+      ...this.project(a.lat, a.lon), c: a.risk_score >= 80 ? "#FF5C7A" : a.risk_score >= 55 ? "#FFB454" : "#B9AFFF",
+      d: (i * 0.4).toFixed(1) + "s", label: (a.cc || a.country || "") + " · " + a.risk_score,
+    }));
+    const presets = [
+      { label: "sbi-verify-now.top", v: "https://sbi-verify-now.top/login" },
+      { label: "paypa1-account.support", v: "https://paypa1-account.support/verify" },
+      { label: "github.com", v: "https://github.com/zenithal/core" },
+      { label: "bit.ly shortener", v: "https://bit.ly/3xK9pQ" },
+    ].map((p) => ({ label: p.label, use: () => this.setState({ urlInput: p.v, scanResult: null }) }));
+    const r = s.scanResult;
+    const rc = r ? this.chip(r.verdict) : this.chip("SAFE");
+    const rep = r && r.ip_intel ? (r.ip_intel.reputation || "—") : "—";
+    const msgPresets = [
+      { label: "URGENT: SBI account blocked…", v: "URGENT: Your SBI account will be suspended today. Verify immediately: https://sbi-verify-now.top/login" },
+      { label: "Delivery fee pending…", v: "Your parcel is held. Pay the customs fee at https://promo-track.link/r/8842 to release it." },
+      { label: "Safe link (docs)", v: "Hey, the API docs are here: https://stripe.com/docs/api — see the webhooks part." },
+    ].map((m) => ({ label: m.label, use: () => this.setState({ msgText: m.v, msgResult: null }) }));
+    const mr = s.msgResult;
+    const mChip = mr ? this.chip(mr.overall_verdict) : this.chip("SAFE");
+    const lr = s.logReport;
+    const SAMPLE = [
+      '203.0.113.7 - - [17/Jul/2026:09:14:02] "GET /products?id=1%27%20OR%20%271%27=%271 HTTP/1.1" 200',
+      '185.220.101.34 - - [17/Jul/2026:09:14:09] "GET /search?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E HTTP/1.1" 200',
+      '45.155.205.99 - - [17/Jul/2026:09:14:31] "GET /download?f=../../../../etc/passwd HTTP/1.1" 404',
+      '91.240.118.172 - - [17/Jul/2026:09:15:02] "GET /ping?host=8.8.8.8%3Bcat%20/etc/shadow HTTP/1.1" 500',
+      '103.94.135.201 - - [17/Jul/2026:09:15:44] "GET /page?file=php://filter/convert.base64-encode/resource=index HTTP/1.1" 200',
+      '198.51.100.23 - - [17/Jul/2026:09:16:01] "GET /home HTTP/1.1" 200',
+    ].join("\n");
+    return {
+      nav, statCards, feed, attackers, mapPins, presets, msgPresets,
+      connColor: s.mode === "live" ? "#5EEAD4" : s.mode === "sim" ? "#FFB454" : "#B9AFFF",
+      connLabel: s.mode === "live" ? "LIVE · API CONNECTED" : s.mode === "sim" ? "SIMULATED · API OFFLINE" : "CONNECTING…",
+      connWord: s.mode === "live" ? "via /ws/feed" : "simulated",
+      hUrl: s.health ? s.health.url_model : (s.mode === "sim" ? "xgboost (sim)" : "…"),
+      hPayload: s.health ? s.health.payload_model : (s.mode === "sim" ? "tfidf+sig (sim)" : "…"),
+      hGeo: s.health ? s.health.geo_backend : (s.mode === "sim" ? "offline-ref (sim)" : "…"),
+      isFeed: s.panel === "feed", isUrl: s.panel === "url", isLogs: s.panel === "logs", isMap: s.panel === "map", isChat: s.panel === "chat",
+      feedCount: s.feed.length,
+      sel: !!sel, noSel: !sel,
+      selVerdict: sel ? sel.verdict : "", selScore: sel ? sel.score : "", selInput: sel ? sel.input : "",
+      selIp: sel ? sel.src_ip : "", selCountry: sel ? (sel.country || sel.cc || "—") : "", selAsn: sel ? (sel.asn || (sel.ip_intel && sel.ip_intel.asn) || "—") : "",
+      selReasons: sel ? (sel.reasons || []) : [],
+      selChipBg: selChip.chipBg, selChipFg: selChip.chipFg, selChipBd: selChip.chipBd,
+      urlInput: s.urlInput, onUrlInput: (e) => this.setState({ urlInput: e.target.value }),
+      onUrlKey: (e) => { if (e.key === "Enter") this.doScan(); },
+      doScan: this.doScan, scanBusy: s.scanBusy, scanResult: !!r,
+      scanUrl: r ? r.input : "", scanVerdict: r ? r.verdict : "", scanScore: r ? r.score : 0,
+      scanDeg: r ? Math.round(r.score * 3.6) + "deg" : "0deg",
+      scanFg: rc.chipFg, scanBg2: rc.chipBg, scanBd: rc.chipBd,
+      scanGlow: r && r.verdict === "MALICIOUS" ? "rgba(255,92,122,.12)" : r && r.verdict === "SUSPICIOUS" ? "rgba(255,180,84,.1)" : "rgba(94,234,212,.08)",
+      scanEngine: r ? (r.engine || "Engine 1 — URL") : "", scanIp: r ? (r.resolved_ip || "—") : "",
+      scanCountry: r && r.ip_intel ? (r.ip_intel.country || "—") : "—", scanAsn: r && r.ip_intel ? (r.ip_intel.asn || "—") : "—",
+      scanRep: rep, scanRepC: rep === "clean" ? "#5EEAD4" : rep === "listed" ? "#FF8CA3" : "rgba(237,235,255,.6)",
+      scanReasons: r ? (r.reasons || []) : [],
+      logText: s.logText, onLogText: (e) => this.setState({ logText: e.target.value }),
+      loadSample: () => this.setState({ logText: SAMPLE, logReport: null }),
+      doLog: this.doLog, logBusy: s.logBusy, logReport: !!lr,
+      logLines: lr ? (lr.lines_parsed ?? "—") : "", logAttacks: lr ? (lr.attacks_found ?? "—") : "",
+      logTypes: lr ? Object.entries(lr.by_type || {}).map(([name, count]) => ({ name: name.toUpperCase(), count })) : [],
+      logAttackers: lr ? (lr.attackers || []).map((a) => ({ ...a, riskC: a.risk_score >= 80 ? "#FF8CA3" : "#FFC985" })) : [],
+      msgText: s.msgText, onMsgText: (e) => this.setState({ msgText: e.target.value }),
+      doMsg: this.doMsg, msgBusy: s.msgBusy, msgResult: !!mr,
+      msgVerdict: mr ? mr.overall_verdict : "", msgFg: mChip.chipFg, msgBg2: mChip.chipBg, msgBd: mChip.chipBd,
+      msgGlow: mr && mr.overall_verdict === "MALICIOUS" ? "rgba(255,92,122,.12)" : "rgba(94,234,212,.07)",
+      msgSummary: mr ? `${mr.urls_found} link${mr.urls_found === 1 ? "" : "s"} found — ${mr.overall_verdict === "MALICIOUS" ? "blocked before opening" : mr.overall_verdict === "SUSPICIOUS" ? "open with caution" : "safe to open"}` : "",
+      msgUrls: mr ? (mr.results || []).map((x) => ({ url: x.input, verdict: x.verdict, score: x.score, c: this.chip(x.verdict).chipFg })) : [],
+    };
+  }
+}
+</script>
+</body>
+</html>

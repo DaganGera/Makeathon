@@ -110,10 +110,12 @@ first, ML only for the unknown**:
    as local dev resources unless they serve a fake brand page.
 
 Lists are rebuilt from public feeds by `training/build_reputation.py` and refresh
-on the `update_feeds.py` schedule (999,950 reputable domains + ~6,000 malicious
-hosts currently loaded). **No LLM/SLM is needed** — URL classification is a
-reputation + gradient-boosting problem, and an LLM would be slower, costlier, and
-would not fix the reputation gap.
+on the `update_feeds.py` schedule (999,950 reputable domains + ~36,000 malicious
+hosts currently loaded, from URLhaus + OpenPhish + PhishTank + Maltrail). **No
+LLM/SLM is needed** — URL classification is a reputation + gradient-boosting
+problem, and an LLM would be slower, costlier, and would not fix the reputation
+gap. (The one place we *do* use an LLM — the AI Analyst, section 6 — is by
+design a pure explainability layer with zero influence on any verdict or score.)
 
 **Engineering note we're proud of:** an early model over-flagged long legit URLs
 (Gmail, Kaggle) because malware-feed URLs are long and top-site benign URLs were
@@ -122,4 +124,33 @@ benign data, then added the reputation layer above so common sites are decided b
 reputation, not structure.
 
 - PCAP ingestion is designed-for but access-log analysis is the shipped P0 path
-  (more robust for a live demo).
+  (more robust for a live demo). An optional live packet-capture module
+  (`capture/sniffer.py`) is also included as a showpiece — see section 6.
+
+---
+
+## 6. v2: unifying Suricata / Wazuh / Darktrace concepts
+
+Added on top of the reliable core above — each is additive and optional; none
+of them can downgrade or override a verdict from the reputation/ML core.
+
+| Concept | Inspired by | Where |
+|---|---|---|
+| Signature IDS | Suricata / Snort | `app/ml/features_payload.py` signature layer (unchanged core) |
+| SIEM correlation — scanner-tool fingerprinting, sequential-path-scan detection from AGGREGATE request patterns (no single request needs to be malicious) | Wazuh | `app/engines/payload_engine.py::_build_behavior` |
+| Self-learning anomaly baseline — IsolationForest trained ONLY on benign traffic shape; flags requests statistically unlike anything in training, independent of any signature | Darktrace | `app/engines/anomaly.py`, `training/train_anomaly.py` |
+| IOC threat feed | Suricata/Maltrail rule-feed model | Maltrail static trails merged into the blocklist, `training/build_reputation.py` |
+| WHOIS domain-age enrichment (opt-in) | common commercial anti-phishing signal | `app/engines/whois_intel.py` |
+| AI Analyst — on-demand LLM incident report (explainability only, zero influence on verdict/score); falls back to the rule-based explainer if offline | — | `app/engines/llm_analyst.py`, `POST /api/v1/analyst` |
+| Live packet capture (optional showpiece; plaintext HTTP + DNS only, by design — no TLS parsing) | Suricata/Zeek | `capture/sniffer.py` |
+
+**Anomaly engine validation:** `training/train_anomaly.py` measures the false-
+positive rate on 37,200 held-out normal requests before it's trusted (~0.4% at
+the shipped threshold) — the same acceptance-test discipline as the URL and
+payload models, not a black box.
+
+**Honest positioning:** we do not claim to replace Suricata/Wazuh/Darktrace at
+enterprise scale — those are mature, purpose-built platforms with years of
+engineering behind deep packet inspection and fleet-scale correlation. What
+Zenithal offers is their *combined concepts*, unified into one explainable,
+self-hosted platform purpose-built for this problem statement.

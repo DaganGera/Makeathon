@@ -8,13 +8,15 @@ Production features (all demo-safe / opt-in):
   * Batch endpoint for high-throughput scanning
 """
 
+import hashlib
+import json
 import re
 
 from fastapi import APIRouter, Depends, UploadFile, File, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 from app import db, cache, alerts, config
-from app.engines import ip_intel, reputation
+from app.engines import anomaly, ip_intel, reputation, llm_analyst
 from app.engines.url_engine import engine as url_engine
 from app.engines.payload_engine import engine as payload_engine
 from app.security import guard
@@ -41,6 +43,10 @@ class MessageRequest(BaseModel):
 
 class LogTextRequest(BaseModel):
     text: str
+
+
+class AnalystRequest(BaseModel):
+    detection: dict
 
 
 # --- Shared scan helper (cache -> analyze -> persist -> stream -> alert) --
@@ -70,11 +76,13 @@ async def health() -> dict:
         "status": "ok",
         "url_model": "loaded" if url_engine.loaded else "heuristic-fallback",
         "payload_model": "loaded" if payload_engine.loaded else "signature-only",
+        "anomaly_model": "active" if anomaly.engine.loaded else "untrained",
         "geo_backend": ip_intel.geo_backend(),
         "reputation": reputation.stats(),
         "cache": cache.backend(),
         "auth": "required" if config.REQUIRE_API_KEY else "open",
         "alerts": "on" if alerts.enabled() else "off",
+        "analyst": "groq" if config.GROQ_API_KEY else "fallback-only",
         "ws_clients": hub.count,
     }
 
@@ -145,6 +153,20 @@ async def _process_log(raw: str) -> dict:
         await hub.broadcast("detection", saved)
         alerts.maybe_alert(event)
     return report
+
+
+# --- AI Analyst (on-demand incident report; never runs during a scan) ----
+@router.post("/analyst")
+async def analyst(req: AnalystRequest, _=Depends(guard)) -> dict:
+    key = "analyst:" + hashlib.sha256(
+        json.dumps(req.detection, sort_keys=True, default=str).encode()
+    ).hexdigest()
+    cached = await cache.get(key)
+    if cached:
+        return cached
+    result = await llm_analyst.generate_report(req.detection)
+    await cache.set(key, result, ttl=3600)
+    return result
 
 
 # --- IP lookup (standalone) ---------------------------------------------

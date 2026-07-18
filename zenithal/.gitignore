@@ -5,6 +5,10 @@ venv/
 .venv/
 *.egg-info/
 
+# Secrets
+.env
+backend/.env
+
 # Models & data (regenerate via training scripts)
 backend/app/ml/models/*.pkl
 backend/app/ml/models/*.json
@@ -14,6 +18,8 @@ backend/data/allowlist_domains.txt
 backend/data/blocklist_hosts.txt
 backend/training/data/*.csv
 backend/training/data/openphish.txt
+backend/training/data/maltrail_iocs.txt
+backend/data/whois_cache.json
 backend/feed_update.log
 
 # Node

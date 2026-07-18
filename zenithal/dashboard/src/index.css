@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---- Zenithal v2 design-system keyframes (Landing/Login/Dashboard) ---- */
+@keyframes zIn { from { opacity: 0; transform: translateY(24px); filter: blur(8px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+@keyframes zInScale { from { opacity: 0; transform: translateY(20px) scale(.96); filter: blur(8px); } to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
+@keyframes zOut { from { opacity: 1; filter: blur(0); } to { opacity: 0; filter: blur(10px); visibility: hidden; } }
+@keyframes zDash { from { opacity: 0; transform: translateY(40px) scale(.8); filter: blur(10px); } to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
+@keyframes zFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes zZoom { from { transform: scale(1); } to { transform: scale(1.02); } }
+@keyframes zDrift1 { 0% { transform: translate(0,0) scale(1); } 33% { transform: translate(90px,60px) scale(1.15); } 66% { transform: translate(-50px,110px) scale(.95); } 100% { transform: translate(0,0) scale(1); } }
+@keyframes zDrift2 { 0% { transform: translate(0,0) scale(1); } 40% { transform: translate(-110px,-70px) scale(1.2); } 75% { transform: translate(60px,-40px) scale(.9); } 100% { transform: translate(0,0) scale(1); } }
+@keyframes zBlob { 0%, 100% { transform: translateY(0) rotate(0deg); border-radius: 52% 48% 55% 45%/48% 55% 45% 52%; } 50% { transform: translateY(-22px) rotate(8deg); border-radius: 45% 55% 48% 52%/55% 45% 52% 48%; } }
+@keyframes zPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+@keyframes zPing { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(2.6); opacity: 0; } }
+@keyframes zTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes zScan { 0%, 15% { transform: translateY(0); } 45%, 60% { transform: translateY(-56px); } 90%, 100% { transform: translateY(-112px); } }
+@keyframes zBar { from { width: 0; } }
+@keyframes zCaret { 0%, 45% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes zSpin { to { transform: rotate(360deg); } }
+@keyframes zShake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+@keyframes zRow { from { opacity: 0; transform: translateY(-14px); filter: blur(4px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+
 :root {
     --color-phishing: #ef4444;
     --color-suspicious: #f97316;
@@ -78,5 +98,25 @@ body {
 
     50% {
         opacity: 0.5;
+    }
+}
+
+/* Radar-ping ring around live MALICIOUS map pins (Leaflet renders CircleMarker
+   as an SVG <circle>, so a CSS transform animation works directly on it). */
+.pulse-ring {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: pulseRing 1.6s ease-out infinite;
+}
+
+@keyframes pulseRing {
+    0% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+
+    100% {
+        transform: scale(2.6);
+        opacity: 0;
     }
 }

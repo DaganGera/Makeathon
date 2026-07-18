@@ -89,4 +89,18 @@ def explain_attacker(profile: dict) -> list[str]:
     if len(types) >= 3:
         reasons.append("Multiple distinct attack techniques from one IP indicate a determined, tooled adversary.")
 
+    behavior = profile.get("behavior") or {}
+    if behavior.get("scanner_tool"):
+        reasons.append(f"Known scanner tooling detected in User-Agent (`{behavior['scanner_tool']}`) — not a human browser.")
+    if behavior.get("sequential_scan"):
+        reasons.append(f"Probed {behavior['distinct_paths_probed']} distinct paths with "
+                        f"{behavior['not_found_count']} not-found responses — systematic reconnaissance, not normal browsing.")
+
+    if not types and profile.get("anomalous_requests", 0) > 0:
+        reasons.append(
+            f"No known-signature match, but {profile['anomalous_requests']} request(s) scored "
+            f"{profile.get('anomaly_score', 0)}/100 on the self-learning behavioral baseline — "
+            "statistically unlike any normal traffic seen during training. Possible zero-day or reconnaissance."
+        )
+
     return reasons

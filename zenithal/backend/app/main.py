@@ -16,6 +16,7 @@ from app import config, db
 from app.api.routes import router
 from app.engines.url_engine import engine as url_engine
 from app.engines.payload_engine import engine as payload_engine
+from app.engines.anomaly import engine as anomaly_engine
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,8 +39,9 @@ async def lifespan(app: FastAPI):
     await db.init_db()
     url_engine.load()
     payload_engine.load()
-    logger.info("Zenithal ready | url_model=%s payload_model=%s auth=%s",
-                url_engine.loaded, payload_engine.loaded, config.REQUIRE_API_KEY)
+    anomaly_engine.load()
+    logger.info("Zenithal ready | url_model=%s payload_model=%s anomaly_model=%s auth=%s",
+                url_engine.loaded, payload_engine.loaded, anomaly_engine.loaded, config.REQUIRE_API_KEY)
     yield
 
 
