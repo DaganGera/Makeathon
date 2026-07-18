@@ -1,7 +1,11 @@
 // Zenithal extension — background service worker.
 // Adds a right-click "Scan link with Zenithal" action and notifies the verdict.
-
-const API = "http://127.0.0.1:8000/api/v1/analyze/url";
+//
+// Points at the hosted Zenithal backend. If you redeploy (deploy_demo_tunnel.ps1
+// gives a new URL every run since Cloudflare quick tunnels are ephemeral),
+// update API_BASE below and reload the extension — chrome://extensions → the
+// reload icon on this card.
+const API_BASE = "https://civil-grown-burke-thru.trycloudflare.com";
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -25,14 +29,24 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 async function scan(url) {
   try {
-    const res = await fetch(API, {
+    const res = await fetch(`${API_BASE}/api/v1/analyze/url`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
     });
+    if (!res.ok) return { verdict: "ERROR", reasons: [`Backend returned ${res.status}`] };
     return await res.json();
   } catch {
-    return { verdict: "ERROR", reasons: ["Zenithal backend unreachable on :8000"] };
+    return { verdict: "ERROR", reasons: ["Zenithal backend unreachable"] };
+  }
+}
+
+async function health() {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/health`, { method: "GET" });
+    return res.ok ? { ok: true, data: await res.json() } : { ok: false };
+  } catch {
+    return { ok: false };
   }
 }
 
@@ -48,14 +62,18 @@ function notify(url, r) {
 
 // Minimal coloured square icon so notifications render without image assets.
 function iconDataUrl(verdict) {
-  const color = verdict === "MALICIOUS" ? "%23ef4444" : verdict === "SUSPICIOUS" ? "%23f97316" : "%2322c55e";
+  const color = verdict === "MALICIOUS" ? "%23ff5c7a" : verdict === "SUSPICIOUS" ? "%23ffb454" : "%2352e0c4";
   return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='64' height='64' rx='12' fill='${color}'/></svg>`;
 }
 
-// Allow the popup to request scans.
+// Popup <-> background messaging.
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "scan") {
     scan(msg.url).then(sendResponse);
     return true; // async
+  }
+  if (msg.type === "health") {
+    health().then(sendResponse);
+    return true;
   }
 });

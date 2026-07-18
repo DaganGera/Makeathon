@@ -34,6 +34,19 @@ Open `http://127.0.0.1:5173`. Five panels:
 
 **Demo line:** "It protects me *while I browse* — I never copy-paste anything."
 
+The extension points at the hosted backend by default (`API_BASE` in `extension/background.js`) — no
+settings screen, nothing to configure, it just works the moment you load it. The status dot in the
+popup goes green/**LIVE** the instant it can reach that backend.
+
+#### If you redeploy and get a new tunnel URL
+
+Quick tunnels (see `docs/DEPLOYMENT.md`) are ephemeral — the URL changes every time
+`deploy_demo_tunnel.ps1` is re-run. If the popup shows **OFFLINE**, that's why. Fix:
+1. Open `extension/background.js`, update the `API_BASE` constant to the new backend tunnel URL.
+2. Open `extension/manifest.json`, update `host_permissions` to match.
+3. `chrome://extensions` → click the reload icon on the Zenithal card. No re-loading the unpacked
+   folder from scratch needed.
+
 ---
 
 ## 📱 On a Mobile phone

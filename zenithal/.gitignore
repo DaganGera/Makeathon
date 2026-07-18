@@ -25,6 +25,11 @@ backend/feed_update.log
 # Node
 node_modules/
 dashboard/dist/
+dashboard/.env.production
+
+# Demo-tunnel tooling (downloaded binary + ephemeral logs)
+tools/cloudflared.exe
+tunnel-logs/
 
 # Screenshots / scratch
 demo/shot_*.png
