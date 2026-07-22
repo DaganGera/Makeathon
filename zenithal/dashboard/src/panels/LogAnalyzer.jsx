@@ -1,19 +1,35 @@
 import React, { useState } from "react";
-import { Upload, FileText, ShieldAlert } from "lucide-react";
+import { Upload, FileText, ShieldAlert, Brain } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { analyzeLogFile, analyzeLogText } from "../services/api";
-import { VerdictBadge, StatTile, ReasonList } from "../components/Shared";
+import { StatTile, ReasonList } from "../components/Shared";
+import AnalystPanel from "../components/AnalystPanel";
+import { font, color, gradients, verdictChip } from "../theme";
 
 const TYPE_COLORS = {
-  SQLi: "#ef4444", XSS: "#f97316", Traversal: "#eab308",
-  CmdInjection: "#a855f7", LFI_RFI: "#06b6d4",
+  SQLi: color.red, XSS: color.orange, Traversal: "#eab308",
+  CmdInjection: color.pink, LFI_RFI: color.cyan,
 };
 
 export default function LogAnalyzer() {
+  const [logText, setLogText] = useState("");
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
+
+  const run = async (text) => {
+    const t = text ?? logText;
+    if (!t.trim()) return;
+    setLoading(true); setError(null); setReport(null); setSelected(null);
+    try {
+      setReport(await analyzeLogText(t));
+    } catch {
+      setError("Analysis failed — is the API running on :8000?");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const onFile = async (file) => {
     if (!file) return;
@@ -27,76 +43,76 @@ export default function LogAnalyzer() {
     }
   };
 
-  const chartData = report
-    ? Object.entries(report.attack_breakdown).map(([type, count]) => ({ type, count }))
-    : [];
+  const chartData = report ? Object.entries(report.attack_breakdown).map(([type, count]) => ({ type, count })) : [];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-          <FileText className="w-7 h-7 text-cyan-400" /> Server Log / Attack Analyzer
-        </h2>
-        <p className="text-slate-400 mt-1">
-          Upload a web-server access log. Zenithal identifies URL-based attacks
-          (SQLi / XSS / traversal / command-injection / LFI) and ranks the attacker IPs.
-        </p>
+    <div style={{ animation: "zIn .5s cubic-bezier(.22,1,.36,1) both", maxWidth: 980, margin: "0 auto" }}>
+      <h2 style={{ margin: "0 0 6px", fontFamily: font.display, fontWeight: 700, fontSize: 21, display: "flex", alignItems: "center", gap: 10 }}>
+        <FileText size={19} color={color.purpleLight} /> Log Analyzer
+      </h2>
+      <p style={{ margin: "0 0 20px", fontSize: 13, color: "rgba(237,235,255,.5)" }}>Engine 2 — signatures + ML + self-learning anomaly baseline + behavior correlation, aggregated into ranked attacker-IP profiles.</p>
+
+      <textarea value={logText} onChange={(e) => setLogText(e.target.value)} rows={6} spellCheck={false}
+        placeholder='203.0.113.7 - - [17/Jul/2026:09:14:02] "GET /products?id=1%27%20OR%20%271%27=%271 HTTP/1.1" 200'
+        style={{ width: "100%", boxSizing: "border-box", padding: "16px 18px", borderRadius: 14, border: "1px solid rgba(255,255,255,.1)", background: "rgba(16,15,28,.7)", color: "rgba(237,235,255,.8)", fontFamily: font.mono, fontSize: 11.5, lineHeight: 1.7, outline: "none", resize: "vertical" }} />
+
+      <div style={{ display: "flex", gap: 12, marginTop: 14, alignItems: "center", flexWrap: "wrap" }}>
+        <button onClick={() => run()} disabled={loading}
+          style={{ padding: "13px 28px", border: "none", borderRadius: 99, background: gradients.brandButton, color: "#fff", fontSize: 13.5, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 9, boxShadow: "0 0 26px rgba(240,86,199,.3)", opacity: loading ? 0.7 : 1 }}>
+          {loading && <span style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,.35)", borderTopColor: "#fff", animation: "zSpin .7s linear infinite" }} />}
+          Analyze log
+        </button>
+        <label style={{ padding: "13px 22px", borderRadius: 99, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.03)", color: "rgba(237,235,255,.7)", fontSize: 13, cursor: "pointer" }}>
+          Upload file
+          <input type="file" className="hidden" accept=".log,.txt,text/plain" style={{ display: "none" }} onChange={(e) => onFile(e.target.files?.[0])} />
+        </label>
+        <span style={{ fontFamily: font.mono, fontSize: 10.5, color: "rgba(237,235,255,.35)" }}>POST /api/v1/analyze/logtext</span>
       </div>
 
-      {/* Dropzone */}
-      <label className="block cursor-pointer">
-        <div className="border-2 border-dashed border-slate-700 hover:border-cyan-500/60 rounded-xl p-8 text-center transition-colors bg-surface-200/50">
-          <Upload className="w-8 h-8 mx-auto text-slate-500 mb-2" />
-          <p className="text-slate-300 font-medium">Drop an access log or click to upload</p>
-          <p className="text-slate-500 text-sm mt-1">Apache/Nginx common format · try <code className="text-cyan-300">demo/sample_access.log</code></p>
-          <input type="file" className="hidden" accept=".log,.txt,text/plain"
-                 onChange={(e) => onFile(e.target.files?.[0])} />
-        </div>
-      </label>
-
-      {loading && <p className="text-cyan-400 text-sm">Analyzing log…</p>}
-      {error && <div className="bg-red-500/10 border border-red-500/30 text-red-300 rounded-lg p-4">{error}</div>}
+      {error && <div style={{ marginTop: 20, background: "rgba(255,92,122,.08)", border: "1px solid rgba(255,92,122,.25)", color: color.redLight, borderRadius: 12, padding: 14, fontSize: 13 }}>{error}</div>}
 
       {report && (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatTile label="Requests" value={report.total_requests} accent="text-slate-200" />
-            <StatTile label="Attacks Found" value={report.malicious_requests} accent="text-red-400" />
-            <StatTile label="Unique Attackers" value={report.unique_attackers} accent="text-orange-400" />
-            <StatTile label="Techniques" value={Object.keys(report.attack_breakdown).length} accent="text-cyan-400" />
+        <div style={{ marginTop: 26, animation: "zIn .5s cubic-bezier(.22,1,.36,1) both" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 12, marginBottom: 18 }}>
+            <StatTile label="REQUESTS" value={report.total_requests} accent={color.text} />
+            <StatTile label="ATTACKS FOUND" value={report.malicious_requests} accent={color.red} />
+            <StatTile label="ATTACKERS" value={report.unique_attackers} accent={color.orange} />
+            <StatTile label="TECHNIQUES" value={Object.keys(report.attack_breakdown).length} accent={color.purpleLight} />
+            <StatTile label="AI BASELINE" value={report.anomaly_count ?? 0} sub={report.anomaly_engine === "active" ? "self-learning" : "untrained"} accent={color.cyan} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Attack breakdown chart */}
-            <div className="bg-surface-200 border border-slate-700/60 rounded-xl p-5">
-              <h4 className="text-white font-semibold mb-4 text-sm">Attack-type breakdown</h4>
-              <ResponsiveContainer width="100%" height={220}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={{ borderRadius: 16, border: "1px solid rgba(255,255,255,.08)", background: "rgba(16,15,28,.55)", padding: 20 }}>
+              <h4 style={{ margin: "0 0 14px", fontFamily: font.mono, fontSize: 10, letterSpacing: ".1em", color: "rgba(237,235,255,.5)" }}>ATTACK-TYPE BREAKDOWN</h4>
+              <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={chartData} margin={{ left: -20 }}>
-                  <XAxis dataKey="type" stroke="#64748b" fontSize={11} />
-                  <YAxis stroke="#64748b" fontSize={11} allowDecimals={false} />
-                  <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8 }} />
+                  <XAxis dataKey="type" stroke="rgba(237,235,255,.4)" fontSize={10} />
+                  <YAxis stroke="rgba(237,235,255,.4)" fontSize={10} allowDecimals={false} />
+                  <Tooltip contentStyle={{ background: "#100F1C", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, fontSize: 12 }} />
                   <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                    {chartData.map((d) => <Cell key={d.type} fill={TYPE_COLORS[d.type] || "#3b82f6"} />)}
+                    {chartData.map((d) => <Cell key={d.type} fill={TYPE_COLORS[d.type] || color.purpleLight} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
-            {/* Attacker leaderboard */}
-            <div className="bg-surface-200 border border-slate-700/60 rounded-xl p-5">
-              <h4 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-red-400" /> Top Attacker IPs
+            <div style={{ borderRadius: 16, border: "1px solid rgba(255,255,255,.08)", background: "rgba(16,15,28,.55)", padding: 20 }}>
+              <h4 style={{ margin: "0 0 12px", display: "flex", alignItems: "center", gap: 8, fontFamily: font.mono, fontSize: 10, letterSpacing: ".1em", color: "rgba(237,235,255,.5)" }}>
+                <ShieldAlert size={13} color={color.red} /> TOP ATTACKER IPS
               </h4>
-              <div className="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+              <div style={{ maxHeight: 200, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }} className="custom-scrollbar">
                 {report.attackers.map((a) => (
                   <button key={a.ip} onClick={() => setSelected(a)}
-                    className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${selected?.ip === a.ip ? "bg-cyan-500/10 ring-1 ring-cyan-500/40" : "bg-surface-300/50 hover:bg-surface-300"}`}>
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-sm text-slate-200">{a.ip}</span>
-                      <span className={`text-sm font-bold ${a.risk_score >= 70 ? "text-red-400" : "text-orange-400"}`}>{a.risk_score}</span>
+                    style={{ textAlign: "left", padding: "10px 12px", borderRadius: 10, border: selected?.ip === a.ip ? "1px solid rgba(138,124,255,.4)" : "1px solid transparent", background: selected?.ip === a.ip ? "rgba(138,124,255,.1)" : "rgba(255,255,255,.03)", cursor: "pointer", fontFamily: font.body }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontFamily: font.mono, fontSize: 12, color: "rgba(237,235,255,.9)" }}>{a.ip}</span>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: a.risk_score >= 70 ? color.redLight : color.orangeLight }}>{a.risk_score}</span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-slate-500 mt-0.5">
-                      <span>{a.intel?.country} · {a.intel?.hosting_type}</span>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "rgba(237,235,255,.45)", marginTop: 2 }}>
+                      <span>{a.intel?.country} · {a.intel?.hosting_type}
+                        {a.behavior?.scanner_tool && <span style={{ color: color.orangeLight }}> · tooled</span>}
+                        {a.total_hits === 0 && a.anomalous_requests > 0 && <span style={{ color: color.cyan, display: "inline-flex", alignItems: "center", gap: 2 }}> · <Brain size={10} /> AI</span>}
+                      </span>
                       <span>{a.total_hits} hits</span>
                     </div>
                   </button>
@@ -105,40 +121,47 @@ export default function LogAnalyzer() {
             </div>
           </div>
 
-          {/* Selected attacker detail */}
           {selected && (
-            <div className="bg-surface-200 border border-slate-700/60 rounded-xl p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-white font-semibold font-mono">{selected.ip}</h4>
-                <VerdictBadge verdict={selected.risk_score >= 70 ? "MALICIOUS" : "SUSPICIOUS"} />
+            <div style={{ marginTop: 16, borderRadius: 16, border: "1px solid rgba(255,255,255,.08)", background: "rgba(16,15,28,.55)", padding: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <h4 style={{ margin: 0, fontFamily: font.mono, fontSize: 14, color: color.text }}>{selected.ip}</h4>
+                {(() => { const c = verdictChip(selected.risk_score >= 70 ? "MALICIOUS" : "SUSPICIOUS"); return (
+                  <span style={{ padding: "4px 12px", borderRadius: 99, fontFamily: font.mono, fontSize: 10, fontWeight: 600, background: c.bg, color: c.fg, border: `1px solid ${c.bd}` }}>{selected.risk_score >= 70 ? "MALICIOUS" : "SUSPICIOUS"}</span>
+                ); })()}
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 14, fontSize: 12 }}>
                 <Meta k="Country" v={selected.intel?.country} />
                 <Meta k="ASN / Org" v={selected.intel?.asn ? `AS${selected.intel.asn}` : selected.intel?.org} />
                 <Meta k="Hosting" v={selected.intel?.hosting_type} />
                 <Meta k="Reputation" v={selected.intel?.reputation} />
+                {selected.behavior?.scanner_tool && <Meta k="Scanner tool" v={selected.behavior.scanner_tool} />}
+                {selected.behavior?.distinct_paths_probed > 0 && <Meta k="Paths probed" v={`${selected.behavior.distinct_paths_probed} (${selected.behavior.not_found_count} 404s)`} />}
+                {selected.anomalous_requests > 0 && <Meta k="AI baseline score" v={`${selected.anomaly_score}/100`} />}
               </div>
               <ReasonList reasons={selected.reasons} />
+              <div style={{ marginTop: 16 }}>
+                <AnalystPanel detection={{ ...selected, channel: "log", input: selected.ip, verdict: selected.risk_score >= 70 ? "MALICIOUS" : "SUSPICIOUS", score: selected.risk_score }} />
+              </div>
             </div>
           )}
 
-          {/* Raw detections */}
-          <div className="bg-surface-200 border border-slate-700/60 rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-slate-700"><h4 className="text-white font-semibold text-sm">Malicious requests ({report.detections.length})</h4></div>
-            <div className="divide-y divide-slate-800 max-h-[320px] overflow-y-auto custom-scrollbar">
+          <div style={{ marginTop: 16, borderRadius: 16, border: "1px solid rgba(255,255,255,.08)", background: "rgba(16,15,28,.55)", overflow: "hidden" }}>
+            <div style={{ padding: "12px 18px", borderBottom: "1px solid rgba(255,255,255,.06)", fontFamily: font.mono, fontSize: 10, letterSpacing: ".1em", color: "rgba(237,235,255,.5)" }}>
+              MALICIOUS REQUESTS ({report.detections.length})
+            </div>
+            <div style={{ maxHeight: 260, overflowY: "auto" }} className="custom-scrollbar">
               {report.detections.map((d, i) => (
-                <div key={i} className="px-4 py-2.5 hover:bg-surface-300/40">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-mono text-xs text-slate-400">{d.src_ip}</span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ color: TYPE_COLORS[d.attack_type], background: (TYPE_COLORS[d.attack_type] || "#3b82f6") + "1a" }}>{d.label}</span>
+                <div key={i} style={{ padding: "10px 18px", borderBottom: "1px solid rgba(255,255,255,.04)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                    <span style={{ fontFamily: font.mono, fontSize: 10.5, color: "rgba(237,235,255,.45)" }}>{d.src_ip}</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 6, color: TYPE_COLORS[d.attack_type], background: (TYPE_COLORS[d.attack_type] || color.purpleLight) + "1a" }}>{d.label}</span>
                   </div>
-                  <div className="font-mono text-xs text-slate-300 mt-1 break-all">{d.method} {d.target}</div>
-                  {d.evidence?.[0] && <div className="text-xs text-slate-500 mt-0.5" dangerouslySetInnerHTML={{ __html: codeHtml(d.evidence[0]) }} />}
+                  <div style={{ fontFamily: font.mono, fontSize: 11, color: "rgba(237,235,255,.75)", marginTop: 4, wordBreak: "break-all" }}>{d.method} {d.target}</div>
                 </div>
               ))}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -146,13 +169,9 @@ export default function LogAnalyzer() {
 
 function Meta({ k, v }) {
   return (
-    <div className="bg-surface-300/50 rounded-lg px-3 py-2">
-      <p className="text-slate-500 text-xs">{k}</p>
-      <p className="text-slate-200 truncate">{v || "—"}</p>
+    <div style={{ background: "rgba(255,255,255,.03)", borderRadius: 10, padding: "8px 10px" }}>
+      <p style={{ margin: 0, fontSize: 10, color: "rgba(237,235,255,.4)" }}>{k}</p>
+      <p style={{ margin: "2px 0 0", color: "rgba(237,235,255,.85)", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v || "—"}</p>
     </div>
   );
-}
-function codeHtml(s) {
-  const esc = s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return esc.replace(/`([^`]+)`/g, '<code class="text-cyan-300">$1</code>');
 }

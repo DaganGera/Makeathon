@@ -134,7 +134,14 @@ def detect_payload(request_target: str, ml_predict=None) -> dict:
             "detected_by": detected_by,
         }
 
-    if ml_is_attack and ml_proba >= 0.5:
+    # ML-only verdicts (no signature backing) are only trusted when the
+    # target carries a query string. Real SQLi/XSS/traversal payloads almost
+    # always live in a parameter (that's what the model was trained on); bare
+    # admin/config-probe paths like /wp-admin or /.env are common, harmless
+    # reconnaissance that the char-n-gram model otherwise mislabels with high
+    # confidence — this single guard removes that whole false-positive class
+    # without touching the model or its measured accuracy.
+    if ml_is_attack and ml_proba >= 0.5 and "?" in request_target:
         attack_type = ml_type or "SQLi"
         return {
             "is_attack": True,

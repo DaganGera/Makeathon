@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import { Search, Globe, Server, MapPin, Cpu } from "lucide-react";
+import { Search } from "lucide-react";
 import { analyzeUrl } from "../services/api";
-import { VerdictBadge, ScoreBar, ReasonList } from "../components/Shared";
+import { font, color, gradients, verdictChip } from "../theme";
+import AnalystPanel from "../components/AnalystPanel";
 
 const SAMPLES = [
-  "http://sbi-verify-now.top/netbanking/login",
-  "http://192.168.1.1/paypal/login.php",
-  "https://bit.ly/3xY9kQz",
-  "https://github.com",
+  { label: "sbi-verify-now.top", v: "http://sbi-verify-now.top/netbanking/login" },
+  { label: "192.168.1.1/paypal", v: "http://192.168.1.1/paypal/login.php" },
+  { label: "bit.ly shortener", v: "https://bit.ly/3xY9kQz" },
+  { label: "github.com", v: "https://github.com" },
 ];
 
 export default function UrlScanner() {
@@ -22,96 +23,88 @@ export default function UrlScanner() {
     setLoading(true); setError(null); setResult(null);
     try {
       setResult(await analyzeUrl(u.trim()));
-    } catch (e) {
+    } catch {
       setError("Backend unreachable — is the API running on :8000?");
     } finally {
       setLoading(false);
     }
   };
 
-  const intel = result?.ip_intel;
+  const r = result;
+  const c = r ? verdictChip(r.verdict) : verdictChip("SAFE");
+  const intel = r?.ip_intel;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-          <Search className="w-7 h-7 text-cyan-400" /> URL Scanner
-        </h2>
-        <p className="text-slate-400 mt-1">Lexical ML + IP intelligence + IP-domain correlation, with plain-language reasons.</p>
-      </div>
+    <div style={{ animation: "zIn .5s cubic-bezier(.22,1,.36,1) both", maxWidth: 900, margin: "0 auto" }}>
+      <h2 style={{ margin: "0 0 6px", fontFamily: font.display, fontWeight: 700, fontSize: 21, display: "flex", alignItems: "center", gap: 10 }}>
+        <Search size={19} color={color.purpleLight} /> URL Scanner
+      </h2>
+      <p style={{ margin: "0 0 22px", fontSize: 13, color: "rgba(237,235,255,.5)" }}>Engine 1 — reputation-first + 38 lexical/host features + XGBoost, fused with IP-domain correlation &amp; WHOIS.</p>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && scan()}
+      <div style={{ display: "flex", gap: 12 }}>
+        <input value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && scan()}
           placeholder="Paste a URL to analyze…"
-          className="flex-1 bg-surface-200 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-        />
+          style={{ flex: 1, padding: "15px 20px", borderRadius: 14, border: "1px solid rgba(255,255,255,.1)", background: "rgba(16,15,28,.7)", color: color.text, fontFamily: font.mono, fontSize: 13, outline: "none" }} />
         <button onClick={() => scan()} disabled={loading}
-          className="px-6 py-3 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-semibold disabled:opacity-50 transition-colors">
-          {loading ? "Scanning…" : "Scan URL"}
+          style={{ padding: "15px 30px", border: "none", borderRadius: 14, background: gradients.brandButton, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 9, boxShadow: "0 0 26px rgba(240,86,199,.3)", opacity: loading ? 0.7 : 1 }}>
+          {loading && <span style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,.35)", borderTopColor: "#fff", animation: "zSpin .7s linear infinite" }} />}
+          {loading ? "Scanning…" : "Scan"}
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {SAMPLES.map((s) => (
-          <button key={s} onClick={() => { setUrl(s); scan(s); }}
-            className="text-xs px-3 py-1.5 rounded-full bg-surface-300 hover:bg-surface-400 text-slate-300 transition-colors">
-            {s.length > 42 ? s.slice(0, 42) + "…" : s}
+      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+        {SAMPLES.map((p) => (
+          <button key={p.v} onClick={() => { setUrl(p.v); scan(p.v); }}
+            style={{ padding: "7px 14px", borderRadius: 99, border: "1px solid rgba(255,255,255,.1)", background: "rgba(255,255,255,.03)", color: "rgba(237,235,255,.6)", fontFamily: font.mono, fontSize: 10.5, cursor: "pointer" }}>
+            {p.label}
           </button>
         ))}
       </div>
 
-      {error && <div className="bg-red-500/10 border border-red-500/30 text-red-300 rounded-lg p-4">{error}</div>}
+      {error && <div style={{ marginTop: 20, background: "rgba(255,92,122,.08)", border: "1px solid rgba(255,92,122,.25)", color: color.redLight, borderRadius: 12, padding: 14, fontSize: 13 }}>{error}</div>}
 
-      {result && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Verdict card */}
-          <div className="lg:col-span-2 bg-surface-200 border border-slate-700/60 rounded-xl p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <VerdictBadge verdict={result.verdict} />
-              <span className="text-slate-400 text-sm">{result.threat_type}</span>
-            </div>
-            <div className="break-all text-slate-200 text-sm bg-surface-300/50 rounded px-3 py-2">{result.input}</div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-400">Risk score</span>
-                <span className="font-bold text-white">{result.score}/100</span>
-              </div>
-              <ScoreBar score={result.score} />
-              <div className="flex gap-4 mt-2 text-xs text-slate-500">
-                <span className="flex items-center gap-1"><Cpu className="w-3 h-3" /> lexical {result.lexical_score} · {result.model_used}</span>
-                <span className="flex items-center gap-1"><Server className="w-3 h-3" /> IP risk +{result.ip_risk}</span>
+      {r && (
+        <div style={{ marginTop: 26, borderRadius: 18, border: `1px solid ${c.bd}`, background: "rgba(16,15,28,.6)", backdropFilter: "blur(18px)", padding: 28, animation: "zIn .5s cubic-bezier(.22,1,.36,1) both", boxShadow: `0 0 60px ${c.bg}` }}>
+          <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 28, alignItems: "center" }}>
+            <div style={{ position: "relative", width: 130, height: 130, borderRadius: "50%", background: `conic-gradient(${c.fg} ${Math.round(r.score * 3.6)}deg, rgba(255,255,255,.06) 0deg)`, display: "grid", placeItems: "center", transition: "background 1s cubic-bezier(.22,1,.36,1)" }}>
+              <div style={{ width: 104, height: 104, borderRadius: "50%", background: "#100F1C", display: "grid", placeItems: "center" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontFamily: font.display, fontWeight: 800, fontSize: 30, color: c.fg }}>{Math.round(r.score)}</div>
+                  <div style={{ fontFamily: font.mono, fontSize: 8.5, letterSpacing: ".1em", color: "rgba(237,235,255,.4)" }}>/100 RISK</div>
+                </div>
               </div>
             </div>
             <div>
-              <h4 className="text-white font-semibold mb-2 text-sm">Why this verdict</h4>
-              <ReasonList reasons={result.reasons} />
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                <span style={{ padding: "5px 14px", borderRadius: 99, fontFamily: font.mono, fontSize: 11, fontWeight: 600, background: c.bg, color: c.fg, border: `1px solid ${c.bd}` }}>{r.verdict}</span>
+                <span style={{ fontFamily: font.mono, fontSize: 10.5, color: "rgba(237,235,255,.45)" }}>{r.threat_type} · {r.model_used}</span>
+              </div>
+              <div style={{ fontFamily: font.mono, fontSize: 12.5, color: "rgba(237,235,255,.85)", wordBreak: "break-all", marginBottom: 14 }}>{r.input}</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontFamily: font.mono, fontSize: 10 }}>
+                <Tag>IP {r.resolved_ip || "—"}</Tag>
+                <Tag>{intel?.country || "—"}</Tag>
+                <Tag>{intel?.asn ? `AS${intel.asn}` : intel?.org || "—"}</Tag>
+                <Tag c={intel?.reputation === "malicious" ? color.redLight : intel?.reputation === "suspicious" ? color.orangeLight : "rgba(237,235,255,.65)"}>rep · {intel?.reputation || "—"}</Tag>
+                {r.domain_age_days != null && (
+                  <Tag c={r.domain_age_days < 30 ? color.redLight : "rgba(237,235,255,.65)"}>domain age · {r.domain_age_days}d</Tag>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* IP intel card */}
-          <div className="bg-surface-200 border border-slate-700/60 rounded-xl p-5 space-y-3">
-            <h4 className="text-white font-semibold flex items-center gap-2 text-sm">
-              <Globe className="w-4 h-4 text-cyan-400" /> IP Intelligence
-            </h4>
-            {result.resolved_ip ? (
-              <dl className="space-y-2 text-sm">
-                <Row k="Resolved IP" v={result.resolved_ip} mono />
-                {intel && <>
-                  <Row k="Location" v={`${intel.city || "?"}, ${intel.country || "?"}`} icon={<MapPin className="w-3 h-3" />} />
-                  <Row k="ASN / Org" v={intel.asn ? `AS${intel.asn} · ${intel.org}` : intel.org} />
-                  <Row k="Hosting" v={intel.hosting_type} />
-                  <Row k="Reputation" v={intel.reputation}
-                       accent={intel.reputation === "malicious" ? "text-red-400" : intel.reputation === "suspicious" ? "text-orange-400" : "text-slate-300"} />
-                  {intel.reverse_dns && <Row k="Reverse DNS" v={intel.reverse_dns} mono />}
-                  <Row k="Source" v={intel.source} />
-                </>}
-              </dl>
-            ) : (
-              <p className="text-slate-500 text-sm">Domain did not resolve to an IP (dead / newly-registered / parked).</p>
-            )}
+          <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,.07)" }}>
+            <div style={{ fontFamily: font.mono, fontSize: 9.5, letterSpacing: ".12em", color: "rgba(237,235,255,.4)", marginBottom: 12 }}>EXPLAINABILITY — RANKED REASONS</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {(r.reasons || []).map((reason, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, padding: "11px 14px", borderRadius: 11, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)", fontSize: 12, lineHeight: 1.5, color: "rgba(237,235,255,.72)" }}>
+                  <span style={{ color: c.fg }}>▸</span>{reason}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 20 }}>
+            <AnalystPanel detection={r} />
           </div>
         </div>
       )}
@@ -119,11 +112,6 @@ export default function UrlScanner() {
   );
 }
 
-function Row({ k, v, mono, accent = "text-slate-300", icon }) {
-  return (
-    <div className="flex justify-between gap-3">
-      <dt className="text-slate-500">{k}</dt>
-      <dd className={`text-right ${accent} ${mono ? "font-mono text-xs" : ""} flex items-center gap-1`}>{icon}{v}</dd>
-    </div>
-  );
+function Tag({ children, c = "rgba(237,235,255,.65)" }) {
+  return <span style={{ padding: "5px 11px", borderRadius: 8, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)", color: c }}>{children}</span>;
 }

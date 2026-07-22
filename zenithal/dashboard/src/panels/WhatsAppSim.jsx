@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { MessageSquare, Send } from "lucide-react";
 import { analyzeMessage } from "../services/api";
 import { VerdictBadge } from "../components/Shared";
+import { font, color } from "../theme";
 
 const PRESETS = [
   "URGENT: Your SBI account is blocked. Verify now at http://sbi-verify-now.top/netbanking/login",
@@ -18,8 +19,7 @@ export default function WhatsAppSim() {
     const b = body || text;
     if (!b.trim()) return;
     setText("");
-    const mine = { from: "them", body: b, ts: new Date() };
-    setMessages((m) => [...m, mine]);
+    setMessages((m) => [...m, { from: "them", body: b, ts: new Date() }]);
     setLoading(true);
     try {
       const res = await analyzeMessage(b, "+91-99999-88888");
@@ -32,57 +32,53 @@ export default function WhatsAppSim() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-          <MessageSquare className="w-7 h-7 text-green-400" /> WhatsApp / SMS Guard
-        </h2>
-        <p className="text-slate-400 mt-1">Links inside messages are auto-extracted and scanned before the user can tap them.</p>
-      </div>
+    <div style={{ animation: "zIn .5s cubic-bezier(.22,1,.36,1) both", maxWidth: 680, margin: "0 auto" }}>
+      <h2 style={{ margin: "0 0 6px", fontFamily: font.display, fontWeight: 700, fontSize: 21, display: "flex", alignItems: "center", gap: 10 }}>
+        <MessageSquare size={19} color={color.purpleLight} /> Message Guard
+      </h2>
+      <p style={{ margin: "0 0 18px", fontSize: 13, color: "rgba(237,235,255,.5)" }}>Paste a WhatsApp/SMS message — links are extracted and scanned before you ever open them.</p>
 
-      <div className="flex flex-wrap gap-2">
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
         {PRESETS.map((p, i) => (
           <button key={i} onClick={() => send(p)}
-            className="text-xs px-3 py-1.5 rounded-full bg-surface-300 hover:bg-surface-400 text-slate-300">
-            {p.slice(0, 46)}…
+            style={{ fontSize: 11, padding: "7px 14px", borderRadius: 99, border: "1px solid rgba(255,255,255,.1)", background: "rgba(255,255,255,.03)", color: "rgba(237,235,255,.6)", cursor: "pointer", fontFamily: font.body }}>
+            {p.slice(0, 42)}…
           </button>
         ))}
       </div>
 
-      <div className="max-w-xl mx-auto bg-[#0b141a] border border-slate-700/60 rounded-xl overflow-hidden flex flex-col" style={{ height: 460 }}>
-        <div className="bg-[#1f2c34] px-4 py-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-green-600 flex items-center justify-center text-white font-bold">B</div>
+      <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,.09)", background: "#0b141a", overflow: "hidden", display: "flex", flexDirection: "column", height: 460, boxShadow: "0 20px 60px rgba(0,0,0,.4)" }}>
+        <div style={{ background: "#1f2c34", padding: "13px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#00a884", display: "grid", placeItems: "center", color: "#fff", fontWeight: 700 }}>B</div>
           <div>
-            <p className="text-white text-sm font-medium">Bank Alerts</p>
-            <p className="text-slate-400 text-xs">protected by Zenithal</p>
+            <p style={{ margin: 0, color: "#fff", fontSize: 13.5, fontWeight: 500 }}>Bank Alerts</p>
+            <p style={{ margin: 0, color: "rgba(255,255,255,.45)", fontSize: 11 }}>protected by Zenithal</p>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
+        <div className="custom-scrollbar" style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
           {messages.map((m, i) =>
             m.from === "them" ? (
-              <div key={i} className="max-w-[80%] bg-[#202c33] text-slate-100 rounded-lg rounded-tl-none px-3 py-2 text-sm break-words">
-                {m.body}
-              </div>
+              <div key={i} style={{ maxWidth: "80%", background: "#202c33", color: "#e9edef", borderRadius: 10, borderTopLeftRadius: 0, padding: "8px 12px", fontSize: 13, wordBreak: "break-word" }}>{m.body}</div>
             ) : (
-              <div key={i} className="max-w-[90%] ml-auto">
+              <div key={i} style={{ maxWidth: "90%", marginLeft: "auto" }}>
                 {m.error ? (
-                  <div className="bg-red-500/10 text-red-300 rounded-lg px-3 py-2 text-sm">Scan failed — API offline.</div>
+                  <div style={{ background: "rgba(255,92,122,.1)", color: color.redLight, borderRadius: 10, padding: "8px 12px", fontSize: 13 }}>Scan failed — API offline.</div>
                 ) : (
                   <ScanBubble res={m.res} />
                 )}
               </div>
             )
           )}
-          {loading && <div className="text-slate-500 text-xs">Zenithal scanning links…</div>}
+          {loading && <div style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>Zenithal scanning links…</div>}
         </div>
 
-        <div className="p-3 bg-[#1f2c34] flex gap-2">
+        <div style={{ padding: 12, background: "#1f2c34", display: "flex", gap: 8 }}>
           <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()}
             placeholder="Type a message with a link…"
-            className="flex-1 bg-[#2a3942] text-white text-sm rounded-full px-4 py-2 focus:outline-none placeholder-slate-500" />
-          <button onClick={() => send()} className="w-10 h-10 rounded-full bg-green-600 hover:bg-green-500 flex items-center justify-center text-white">
-            <Send className="w-4 h-4" />
+            style={{ flex: 1, background: "#2a3942", color: "#fff", fontSize: 13, borderRadius: 99, padding: "9px 16px", border: "none", outline: "none" }} />
+          <button onClick={() => send()} style={{ width: 38, height: 38, borderRadius: "50%", background: "#00a884", border: "none", display: "grid", placeItems: "center", color: "#fff", cursor: "pointer" }}>
+            <Send size={15} />
           </button>
         </div>
       </div>
@@ -92,18 +88,18 @@ export default function WhatsAppSim() {
 
 function ScanBubble({ res }) {
   const v = res.overall_verdict;
-  const border = v === "MALICIOUS" ? "border-red-500/50" : v === "SUSPICIOUS" ? "border-orange-500/50" : "border-green-500/50";
+  const border = v === "MALICIOUS" ? "rgba(255,92,122,.4)" : v === "SUSPICIOUS" ? "rgba(255,180,84,.4)" : "rgba(94,234,212,.35)";
   return (
-    <div className={`bg-surface-200 border ${border} rounded-lg px-3 py-2.5 space-y-2`}>
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-400">🛡️ {res.urls_found} link(s) scanned</span>
+    <div style={{ background: "rgba(255,255,255,.04)", border: `1px solid ${border}`, borderRadius: 12, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 11, color: "rgba(255,255,255,.5)" }}>{res.urls_found} link(s) scanned</span>
         <VerdictBadge verdict={v} />
       </div>
       {res.results.map((r, i) => (
-        <div key={i} className="text-xs">
-          <div className="text-slate-300 break-all">{r.input}</div>
-          {r.reasons?.[0] && <div className="text-slate-500 mt-0.5">▸ {r.reasons[0]}</div>}
-          {v === "MALICIOUS" && <div className="text-red-400 font-medium mt-1">⛔ Link blocked before opening.</div>}
+        <div key={i} style={{ fontSize: 11 }}>
+          <div style={{ color: "rgba(255,255,255,.75)", wordBreak: "break-all" }}>{r.input}</div>
+          {r.reasons?.[0] && <div style={{ color: "rgba(255,255,255,.4)", marginTop: 2 }}>▸ {r.reasons[0]}</div>}
+          {v === "MALICIOUS" && <div style={{ color: color.redLight, fontWeight: 600, marginTop: 4 }}>Blocked before opening.</div>}
         </div>
       ))}
     </div>

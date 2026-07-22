@@ -1,0 +1,17 @@
+﻿2026-07-16T15:38:06  starting feed update
+[OK] allowlist_domains.txt: 999950 domains (excluded 50)
+    URLhaus: 21039
+    OpenPhish: 300
+    PhishTank: 64669
+[OK] blocklist_hosts.txt: 29750 malicious hosts (from 86008 feed URLs)
+[*] Downloading urlhaus_recent.csv ...
+    saved -> D:\Makeathon\zenithal\backend\training\data\urlhaus_recent.csv (4490 KB)
+[*] Downloading openphish.txt ...
+    saved -> D:\Makeathon\zenithal\backend\training\data\openphish.txt (15 KB)
+[*] Downloading phishtank.csv ...
+    saved -> D:\Makeathon\zenithal\backend\training\data\phishtank.csv (12163 KB)
+
+[*] build_reputation.py
+
+[OK] Feeds + reputation lists refreshed. Re-run with --retrain to rebuild models.
+2026-07-16T15:38:17  done (exit 0)

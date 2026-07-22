@@ -14,6 +14,7 @@ Outputs (into data/):
 Run:  python training/build_reputation.py
 """
 
+import ipaddress
 import os
 from urllib.parse import urlparse
 
@@ -85,9 +86,41 @@ def _urls_from_feeds() -> list[str]:
     return urls
 
 
+def _hosts_from_maltrail() -> set[str]:
+    """Maltrail static trail files list indicators (domain/IP/URL, one per
+    line, comma-separated with metadata). We only want hostnames — bare IPs
+    are skipped (IP reputation is handled separately by ip_intel's ASN list)."""
+    path = os.path.join(DATA, "maltrail_iocs.txt")
+    hosts: set[str] = set()
+    if not os.path.exists(path):
+        return hosts
+    with open(path, encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            ind = line.strip().lower()
+            if not ind:
+                continue
+            if "://" in ind:
+                h = urlparse(ind).hostname or ""
+            elif "/" in ind:
+                h = ind.split("/", 1)[0]
+            else:
+                h = ind
+            if not h or "." not in h:
+                continue
+            try:
+                ipaddress.ip_address(h)
+                continue  # bare IP, not a hostname
+            except ValueError:
+                pass
+            hosts.add(h)
+    print(f"    Maltrail: {len(hosts)} hostnames")
+    return hosts
+
+
 def build_blocklist():
     urls = _urls_from_feeds()
-    if not urls:
+    maltrail_hosts = _hosts_from_maltrail()
+    if not urls and not maltrail_hosts:
         print("[!] no threat feeds found — run update_feeds.py first.")
         return
     # Drop hosts whose registered domain is reputable (feeds list redirect-abuse
@@ -112,10 +145,16 @@ def build_blocklist():
             hosts.add(h)
         except Exception:
             pass
+    for h in maltrail_hosts:
+        reg = tldextract.extract(h).registered_domain.lower()
+        if reg and reg in allow:
+            continue
+        hosts.add(h)
     out = os.path.join(OUT, "blocklist_hosts.txt")
     with open(out, "w", encoding="utf-8") as f:
         f.write("\n".join(sorted(hosts)))
-    print(f"[OK] blocklist_hosts.txt: {len(hosts)} malicious hosts (from {len(urls)} feed URLs)")
+    print(f"[OK] blocklist_hosts.txt: {len(hosts)} malicious hosts "
+          f"(from {len(urls)} feed URLs + {len(maltrail_hosts)} Maltrail IOCs)")
 
 
 if __name__ == "__main__":

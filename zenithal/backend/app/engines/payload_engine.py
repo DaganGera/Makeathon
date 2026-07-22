@@ -11,15 +11,23 @@ from IP Data".
 """
 
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime
 
 import joblib
 
 from app import config
-from app.engines import ip_intel
+from app.engines import anomaly, ip_intel
 from app.engines.explain import explain_attacker
 from app.ml.features_payload import detect_payload
+
+# Known scanner/tool user-agents (Suricata/Wazuh-style fingerprinting) —
+# their presence is a strong, explainable "this is automated" signal.
+_SCANNER_UA_RE = re.compile(
+    r"sqlmap|nikto|nuclei|nessus|acunetix|nmap|masscan|dirbuster|gobuster|"
+    r"wpscan|zgrab|shodan|censys|python-requests|curl/|libwww-perl",
+    re.I,
+)
 
 # Apache/Nginx common + combined log:
 #   IP - - [10/Oct/2024:13:55:36 +0000] "GET /path?q=x HTTP/1.1" 200 1234 "ref" "ua"
@@ -28,6 +36,9 @@ _LOG_RE = re.compile(
     r'.*?\[(?P<time>[^\]]+)\]\s+'
     r'"(?P<method>[A-Z]+)\s+(?P<target>[^"\s]+)\s+HTTP/[\d.]+"'
     r'\s+(?P<status>\d{3})'
+    r'(?:\s+\S+)?'                    # response size (optional, "-" or a number)
+    r'(?:\s+"[^"]*")?'                # referrer (optional, combined format)
+    r'(?:\s+"(?P<ua>[^"]*)")?'        # user-agent (optional, combined format)
 )
 _APACHE_TIME = "%d/%b/%Y:%H:%M:%S %z"
 
@@ -71,30 +82,59 @@ class PayloadEngine:
                     "method": m.group("method"),
                     "target": m.group("target"),
                     "status": int(m.group("status")),
+                    "ua": m.group("ua") or "",
                 })
                 continue
             # Fallback: "IP<space>target" or bare target
             parts = line.split(None, 1)
             if len(parts) == 2 and _looks_like_ip(parts[0]):
                 rows.append({"ip": parts[0], "time": None, "method": "GET",
-                             "target": parts[1], "status": 0})
+                             "target": parts[1], "status": 0, "ua": ""})
             else:
                 rows.append({"ip": "0.0.0.0", "time": None, "method": "GET",
-                             "target": line, "status": 0})
+                             "target": line, "status": 0, "ua": ""})
         return rows
 
     # -- Analysis ---------------------------------------------------------
     def analyze_log(self, text: str, max_rows: int = 20000) -> dict:
         rows = self.parse_log(text)[:max_rows]
         detections: list[dict] = []
+        anomalies: list[dict] = []
         per_ip: dict[str, dict] = defaultdict(lambda: {
             "attack_types": defaultdict(int), "hits": [], "times": [],
+            "anomaly_scores": [], "uas": [], "statuses": [], "paths": set(),
         })
+        # Tracks EVERY request per IP (not just flagged ones) so a pure
+        # reconnaissance scan — many distinct paths, mostly 404, no payload in
+        # any single request — is still visible. Each individual probe is
+        # innocuous; it's the aggregate shape across requests that matters,
+        # the same "correlate many weak events" idea behind a SIEM rule.
+        all_activity: dict[str, dict] = defaultdict(lambda: {"statuses": [], "paths": set(), "uas": []})
 
         for row in rows:
+            _track_behavior(all_activity[row["ip"]], row)
             result = detect_payload(row["target"], ml_predict=self._ml_predict)
+
             if not result["is_attack"]:
+                # Self-learning baseline: only requests with NO signature/ML
+                # hit are eligible — this is purely additive, it never
+                # downgrades or hides a real signature detection. Only IPs
+                # that trip something (attack or anomaly) get a profile, so
+                # ordinary benign visitors never clutter the attacker board.
+                a_score = anomaly.engine.score(row["target"])
+                if a_score >= config.ANOMALY_THRESHOLD:
+                    bucket = per_ip[row["ip"]]
+                    _track_behavior(bucket, row)
+                    anomalies.append({
+                        "src_ip": row["ip"], "method": row["method"],
+                        "target": row["target"][:300], "anomaly_score": a_score,
+                        "time": row["time"].isoformat() if row["time"] else None,
+                    })
+                    bucket["anomaly_scores"].append(a_score)
                 continue
+
+            bucket = per_ip[row["ip"]]
+            _track_behavior(bucket, row)
             det = {
                 "src_ip": row["ip"],
                 "method": row["method"],
@@ -107,11 +147,22 @@ class PayloadEngine:
                 "time": row["time"].isoformat() if row["time"] else None,
             }
             detections.append(det)
-            bucket = per_ip[row["ip"]]
             bucket["attack_types"][result["attack_type"]] += 1
             bucket["hits"].append(det)
             if row["time"]:
                 bucket["times"].append(row["time"])
+
+        # Sweep for pure-reconnaissance IPs that never tripped a signature or
+        # the anomaly baseline on any single request, but whose AGGREGATE
+        # request pattern is a textbook scan (many distinct paths, mostly 404).
+        for ip, data in all_activity.items():
+            if ip in per_ip:
+                continue  # already has a real profile from above
+            if _build_behavior(data)["sequential_scan"]:
+                bucket = per_ip[ip]
+                bucket["statuses"] = data["statuses"]
+                bucket["paths"] = data["paths"]
+                bucket["uas"] = data["uas"]
 
         attackers = self._build_attacker_profiles(per_ip)
 
@@ -126,6 +177,9 @@ class PayloadEngine:
             "attack_breakdown": dict(type_breakdown),
             "attackers": attackers,
             "detections": detections,
+            "anomalies": anomalies,
+            "anomaly_count": len(anomalies),
+            "anomaly_engine": "active" if anomaly.engine.loaded else "untrained",
         }
 
     def _build_attacker_profiles(self, per_ip: dict) -> list[dict]:
@@ -138,6 +192,7 @@ class PayloadEngine:
             attack_types = dict(data["attack_types"])
             total = sum(attack_types.values())
             intel = ip_intel.lookup_ip(ip)
+            anomaly_scores = data.get("anomaly_scores", [])
 
             profile = {
                 "ip": ip,
@@ -148,6 +203,9 @@ class PayloadEngine:
                 "burst_seconds": burst,
                 "first_seen": times[0].isoformat() if times else None,
                 "last_seen": times[-1].isoformat() if times else None,
+                "behavior": _build_behavior(data),
+                "anomaly_score": round(sum(anomaly_scores) / len(anomaly_scores), 1) if anomaly_scores else 0.0,
+                "anomalous_requests": len(anomaly_scores),
             }
             profile["risk_score"] = _attacker_risk(profile)
             profile["reasons"] = explain_attacker(profile)
@@ -155,6 +213,36 @@ class PayloadEngine:
 
         profiles.sort(key=lambda p: p["risk_score"], reverse=True)
         return profiles
+
+
+def _track_behavior(bucket: dict, row: dict) -> None:
+    """Record raw per-request signal needed for the behavior fingerprint
+    below, for IPs that already tripped a signature/anomaly hit."""
+    bucket["statuses"].append(row["status"])
+    bucket["paths"].add(row["target"].split("?", 1)[0])
+    if row.get("ua"):
+        bucket["uas"].append(row["ua"])
+
+
+def _build_behavior(data: dict) -> dict:
+    """Wazuh/Suricata-style behavioral fingerprint: known scanner tooling,
+    sequential path probing, error-driven reconnaissance — signals a SIEM
+    correlation rule would raise, distinct from any single payload match."""
+    scanner_tool = None
+    for ua in data.get("uas", []):
+        m = _SCANNER_UA_RE.search(ua)
+        if m:
+            scanner_tool = m.group(0)
+            break
+    statuses = data.get("statuses", [])
+    not_found = sum(1 for s in statuses if s == 404)
+    distinct_paths = len(data.get("paths", set()))
+    return {
+        "scanner_tool": scanner_tool,
+        "distinct_paths_probed": distinct_paths,
+        "not_found_count": not_found,
+        "sequential_scan": distinct_paths >= 8 and not_found >= 5,
+    }
 
 
 def _attacker_risk(p: dict) -> float:
@@ -173,6 +261,16 @@ def _attacker_risk(p: dict) -> float:
     if burst is not None and p["total_hits"] >= 5 and burst > 0:
         if p["total_hits"] / burst > 1:             # >1 req/s = automated
             score += 15
+    behavior = p.get("behavior") or {}
+    if behavior.get("scanner_tool"):
+        score += 15
+    if behavior.get("sequential_scan"):
+        score += 10
+    # Anomaly is additive and only matters when there's no confirmed attack —
+    # it flags unfamiliar behavior, not a known attack, so it can never
+    # dominate a signature-based score.
+    if p["total_hits"] == 0 and p.get("anomalous_requests", 0) > 0:
+        score += min(p.get("anomaly_score", 0.0) * 0.2, 20)
     return round(min(score, 100.0), 1)
 
 

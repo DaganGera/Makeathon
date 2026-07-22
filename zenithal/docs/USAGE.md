@@ -34,6 +34,19 @@ Open `http://127.0.0.1:5173`. Five panels:
 
 **Demo line:** "It protects me *while I browse* — I never copy-paste anything."
 
+The extension points at the hosted backend by default (`API_BASE` in `extension/background.js`) — no
+settings screen, nothing to configure, it just works the moment you load it. The status dot in the
+popup goes green/**LIVE** the instant it can reach that backend.
+
+#### If you redeploy and get a new tunnel URL
+
+Quick tunnels (see `docs/DEPLOYMENT.md`) are ephemeral — the URL changes every time
+`deploy_demo_tunnel.ps1` is re-run. If the popup shows **OFFLINE**, that's why. Fix:
+1. Open `extension/background.js`, update the `API_BASE` constant to the new backend tunnel URL.
+2. Open `extension/manifest.json`, update `host_permissions` to match.
+3. `chrome://extensions` → click the reload icon on the Zenithal card. No re-loading the unpacked
+   folder from scratch needed.
+
 ---
 
 ## 📱 On a Mobile phone
@@ -115,6 +128,65 @@ Full interactive docs: `http://127.0.0.1:8000/docs`.
 With auth on (`REQUIRE_API_KEY=true`), add header `-H "X-API-Key: <key>"`.
 
 ---
+
+## Frontend v2 (new UI)
+
+Stack: **React 18 + Vite + react-router-dom**, kept from v1 (proven, fast HMR)
+with routing added since the app is now three pages, not one. Styling moved
+to inline style objects + a shared `src/theme.js` token file (colors/fonts/
+gradients) instead of Tailwind utility classes, to exactly match the provided
+design reference (`Zenithal Landing/Login/Dashboard.dc.html`) — animations,
+gradients and the Syne/Sora/JetBrains Mono type system are ported faithfully
+via global `@keyframes` in `index.css`. Tailwind is still installed/available
+but the new pages don't depend on it.
+
+- `/` — **Landing** (marketing/pitch page): hero, live ticker, stats, engine
+  cards (now three — the anomaly baseline included), IP-intel preview,
+  integrations, API reference, CTA. Pulls real `/dashboard/stats` +
+  `/dashboard/detections` + `/dashboard/attackers` when the API is reachable;
+  falls back to cosmetic simulated data (`src/services/sim.js`) only if it
+  isn't, so the page never looks broken before the backend responds.
+- `/login` — **Login**: takes an email + optional API key. If the backend has
+  `REQUIRE_API_KEY=true`, the key is verified against a real guarded endpoint
+  before entering; if auth is open (the default), any/no key proceeds — "no
+  key? runs open by default" from `PRODUCTION.md`. The key is stored in
+  `localStorage` and attached as `X-API-Key` on every request afterward
+  (`src/services/api.js` axios interceptor) — a real integration, not cosmetic.
+- `/dashboard` — the SOC console (unchanged panel set and endpoints from v1:
+  Threat Feed, URL Scanner, Log Analyzer, Attacker Map, Message Guard), restyled
+  and carrying all v2 additions (AI Analyst, anomaly/behavior badges, domain
+  age, animated counters, pulsing map pins, Threat Level dial).
+
+## New in v2
+
+- **AI Analyst** — on any detection, click "Generate incident report" for an
+  LLM-written SOC incident report (falls back to the rule-based explainer
+  offline, so it can never break). Needs `GROQ_API_KEY` in `backend/.env`
+  (already configured on this machine).
+- **Self-learning anomaly baseline** — Log Analyzer now shows an "AI Baseline"
+  count and per-attacker anomaly score for requests that match no known
+  signature but are statistically unlike normal traffic (Darktrace-style).
+- **Behavior correlation** — attacker profiles now flag known scanner tooling
+  (sqlmap/nikto/nuclei UAs) and sequential path-scanning, even when no single
+  request carries an attack payload (Wazuh-style SIEM correlation).
+- **One-command live demo:** `python demo/simulate_attack.py` replays a full
+  mixed attack (SQLi burst, mixed toolkit, recon scan, novel-technique anomaly,
+  phishing wave, WhatsApp message) into the running API with narration printed
+  to the console — see `docs/DEMO_SCRIPT.md` for the full timed script.
+- **Optional live packet capture** — `capture/sniffer.py` (needs Npcap +
+  Administrator); see `capture/README.md`. A showpiece, not a dependency.
+
+## Morning-of checklist
+
+1. `cd backend && ..\.venv\Scripts\python -m uvicorn app.main:app --port 8000`
+   (run as Administrator only if you plan to demo live packet capture)
+2. `cd dashboard && npm run dev` → open `http://localhost:5173`
+3. Check `http://127.0.0.1:8000/api/v1/health` — `analyst` should say `"groq"`
+   (LLM up) or `"fallback-only"` (still fine, just uses the rule-based path)
+4. Rehearse once: `python demo/simulate_attack.py --speed 0.2`
+5. Reset for the real run if you want a clean feed: stop the backend, delete
+   `backend/zenithal.db`, restart — or just let it run, extra demo data doesn't
+   hurt the story.
 
 ## One-line pitch per audience
 

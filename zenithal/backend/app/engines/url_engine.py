@@ -14,7 +14,7 @@ import numpy as np
 import tldextract
 
 from app import config
-from app.engines import ip_intel, reputation
+from app.engines import ip_intel, reputation, whois_intel
 from app.engines.explain import explain_url
 from app.ml.features_url import FEATURE_NAMES, extract_url_features
 
@@ -115,6 +115,18 @@ class URLEngine:
         corr = self._correlate(domain, with_ip_intel)
         fused = min(100.0, lexical_score * 0.8 + corr["ip_risk"])
 
+        # WHOIS domain-age (opt-in): a brand-new registration is one of the
+        # strongest real-world phishing tells. Purely additive and capped —
+        # `age_days` is None whenever enrichment is off/unavailable, so this
+        # silently no-ops offline instead of ever blocking or erroring.
+        age_days = whois_intel.domain_age_days(domain) if domain else None
+        if age_days is not None and age_days < 30:
+            fused = min(100.0, fused + 15.0)
+            corr = {**corr, "signals": corr["signals"] + [
+                f"Domain was registered only {age_days} day(s) ago — brand-new "
+                "domains are heavily over-represented in phishing/scam campaigns."
+            ]}
+
         # Loopback / private hosts are local/dev resources, not phishing —
         # unless they serve a fake brand page (192.168.1.1/paypal/login).
         if _is_local_host(url):
@@ -127,7 +139,7 @@ class URLEngine:
         if verdict == "SAFE":
             threat_type = "No threat detected"
         return self._result(url, features, fused, lexical_score, corr, model_used,
-                            reasons, threat_type)
+                            reasons, threat_type, age_days)
 
     def _correlate(self, domain: str | None, with_ip_intel: bool) -> dict:
         corr = {"resolved_ip": None, "intel": None, "signals": [], "ip_risk": 0.0}
@@ -139,7 +151,7 @@ class URLEngine:
         return corr
 
     def _result(self, url, features, fused, lexical_score, corr, model_used,
-                reasons, threat_type) -> dict:
+                reasons, threat_type, age_days=None) -> dict:
         return {
             "channel": "url",
             "input": url,
@@ -153,6 +165,7 @@ class URLEngine:
             "ip_intel": corr["intel"],
             "reasons": reasons,
             "top_features": _top_features(features),
+            "domain_age_days": age_days,
         }
 
 

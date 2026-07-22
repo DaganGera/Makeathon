@@ -25,6 +25,14 @@ MODELS_DIR = APP_DIR / "ml" / "models"
 DATA_DIR = BACKEND_DIR / "data"
 TRAINING_DIR = BACKEND_DIR / "training"
 
+# Load backend/.env if present (gitignored) — lets GROQ_API_KEY etc. live in a
+# local file instead of having to be exported in every shell session.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BACKEND_DIR / ".env")
+except Exception:
+    pass
+
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -85,6 +93,32 @@ SENTRY_DSN = os.getenv("SENTRY_DSN", "")
 
 # --- Online enrichment (optional, off by default for demo reliability) ---
 ENABLE_ONLINE_ENRICHMENT = _env_bool("ENABLE_ONLINE_ENRICHMENT", False)
+# WHOIS domain-age lookup (subset of online enrichment) — cached to disk so
+# repeat scans and demo reruns never re-hit the WHOIS network.
+WHOIS_CACHE_PATH = DATA_DIR / "whois_cache.json"
+
+# --- AI Analyst (optional Groq LLM incident reports) ----------------------
+# Falls back to the existing rule-based explainability report if unset or
+# unreachable — the demo never depends on this being available.
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+# --- Anomaly engine (self-learning baseline, additive signal only) -------
+ANOMALY_MODEL_PATH = MODELS_DIR / "anomaly_iforest.pkl"
+ANOMALY_FEATURE_NAMES_PATH = MODELS_DIR / "anomaly_feature_names.json"
+ANOMALY_META_PATH = MODELS_DIR / "anomaly_meta.json"
+# 0-100 anomaly score above which a request with NO signature match is still
+# flagged as "unusual behavior" (additive — never counted as a signature attack).
+# Set conservatively high: measured ~0.4% false-positive rate on held-out
+# benign traffic at this threshold (see training/train_anomaly.py output) —
+# biased toward "never cry wolf on normal traffic" over maximum sensitivity.
+ANOMALY_THRESHOLD = _env_int("ANOMALY_THRESHOLD", 85)
+
+# --- Maltrail IOC feed (merged into the blocklist build) ------------------
+MALTRAIL_TRAILS_URL = os.getenv(
+    "MALTRAIL_TRAILS_URL",
+    "https://raw.githubusercontent.com/stamparm/maltrail/master/trails/static/malware",
+)
 
 
 def score_to_verdict(score: float) -> str:
