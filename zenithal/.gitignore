@@ -8,6 +8,8 @@ venv/
 # Secrets
 .env
 backend/.env
+dashboard/.env
+dashboard/.env.production
 
 # Models & data (regenerate via training scripts)
 backend/app/ml/models/*.pkl
@@ -24,8 +26,9 @@ backend/feed_update.log
 
 # Node
 node_modules/
+dashboard/.vite/
+dashboard/.vercel/
 dashboard/dist/
-dashboard/.env.production
 
 # Demo-tunnel tooling (downloaded binary + ephemeral logs)
 tools/cloudflared.exe

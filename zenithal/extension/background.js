@@ -1,11 +1,10 @@
 // Zenithal extension — background service worker.
 // Adds a right-click "Scan link with Zenithal" action and notifies the verdict.
 //
-// Points at the hosted Zenithal backend. If you redeploy (deploy_demo_tunnel.ps1
-// gives a new URL every run since Cloudflare quick tunnels are ephemeral),
-// update API_BASE below and reload the extension — chrome://extensions → the
-// reload icon on this card.
-const API_BASE = "https://civil-grown-burke-thru.trycloudflare.com";
+// Defaults to the local backend so a fresh clone works on another PC without
+// any code changes. If you want to point the extension at a remote deployment,
+// update this value and reload the extension in chrome://extensions.
+const API_BASE = "http://127.0.0.1:8000";
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({

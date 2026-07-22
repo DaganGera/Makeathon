@@ -59,14 +59,15 @@ See [`docs/PS_MAPPING.md`](docs/PS_MAPPING.md) for the full feature-by-feature m
 ```powershell
 # 1. Backend
 cd backend
-pip install -r requirements.txt
+pip install -r requirements-lock.txt
 python training/train_url.py         # trains XGBoost (synthetic data if no CSVs)
 python training/train_payload.py     # trains payload classifier
+python training/train_anomaly.py     # trains the anomaly side-channel
 python -m uvicorn app.main:app --port 8000
 
 # 2. Dashboard (new terminal)
 cd dashboard
-npm install
+npm ci
 npm run dev                          # http://127.0.0.1:5173
 ```
 
@@ -140,6 +141,16 @@ Interactive docs at `http://127.0.0.1:8000/docs`.
   streams attacks to the dashboard automatically (no manual upload).
 - Chrome MV3 extension in [`extension/`](extension/) — scans links as you browse.
 - Dashboard is an installable **PWA** (Add to Home Screen on a phone).
+
+## Portable setup checklist
+
+If you move this folder to another PC, you only need:
+
+1. Python 3.11+ and Node.js 18+ installed.
+2. `backend/.env` and `dashboard/.env` left empty unless you want optional cloud services.
+3. `powershell -ExecutionPolicy Bypass -File run.ps1` from the `zenithal/` folder.
+
+The launcher uses the lockfiles, trains missing models automatically, and falls back to local SQLite and built-in demo data whenever external services are absent.
 
 ## Tech stack
 
